@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../lib/store'
 import { formatCurrency } from '../lib/utils'
 
 type Tab='resume'|'private'|'salary'|'security'
 
 export default function Profile(){
-  const {user,employees,data,updateEmployee}=useAuth()
+  const {user,employees,data,updateEmployee,changePassword}=useAuth()
   const employee=useMemo(()=>employees.find(e=>e.email===user?.email)||employees[0],[employees,user])
   const [tab,setTab]=useState<Tab>('resume')
   const [editing,setEditing]=useState(false)
@@ -13,9 +13,26 @@ export default function Profile(){
   const [address,setAddress]=useState(employee.address||'')
   const [about,setAbout]=useState(employee.about||'')
   const [interests,setInterests]=useState(employee.interests||'')
+  const [currentPassword,setCurrentPassword]=useState('')
+  const [newPassword,setNewPassword]=useState('')
+  const [confirmPassword,setConfirmPassword]=useState('')
+  const [securityMessage,setSecurityMessage]=useState('')
+  const [securityError,setSecurityError]=useState('')
+  const [changingPassword,setChangingPassword]=useState(false)
   const payroll=data.payroll.find(p=>p.employeeId===employee.id)
   const manager=user?.role==='admin'||user?.role==='hr'
-  function save(){updateEmployee(employee.id,{phone,address,about,interests});setEditing(false)}
+  useEffect(()=>{if(user?.mustChangePassword)setTab('security')},[user?.mustChangePassword])
+  async function save(){await updateEmployee(employee.id,{phone,address,about,interests});setEditing(false)}
+  async function submitPassword(event:React.FormEvent){
+    event.preventDefault();setSecurityError('');setSecurityMessage('')
+    if(newPassword.length<8){setSecurityError('Use at least 8 characters');return}
+    if(newPassword!==confirmPassword){setSecurityError('New passwords do not match');return}
+    setChangingPassword(true)
+    const result=await changePassword(currentPassword,newPassword)
+    setChangingPassword(false)
+    if(!result.ok){setSecurityError(result.error||'Password change failed');return}
+    setCurrentPassword('');setNewPassword('');setConfirmPassword('');setSecurityMessage('Password changed successfully. Your temporary-password restriction is removed.')
+  }
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
@@ -41,7 +58,7 @@ export default function Profile(){
             <div className="border border-line rounded-xl p-4 space-y-3"><h3 className="text-[13px] font-semibold">Bank and identity</h3><Field label="Account number" value="•••• •••• 4832"/><Field label="Bank name" value="Demo Bank"/><Field label="IFSC" value="DEMO0001234"/><Field label="PAN / UAN" value="Protected · HR access only"/></div>
           </div>}
           {tab==='salary'&&manager&&payroll&&<div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{[['Basic salary',payroll.base],['House rent allowance',payroll.hra],['Standard allowance',payroll.standardAllowance],['Performance bonus',payroll.performanceBonus],['Leave travel allowance',payroll.lta],['Fixed allowance',payroll.fixedAllowance],['Employee PF',payroll.pfEmployee],['Employer PF',payroll.pfEmployer],['Professional tax',payroll.professionalTax]].map(([label,value])=><div key={String(label)} className="border border-line rounded-lg p-3 bg-paper"><div className="text-[11px] text-muted">{label}</div><div className="text-[14px] font-semibold mt-1">{formatCurrency(Number(value||0))}</div></div>)}</div>}
-          {tab==='security'&&<div className="max-w-xl border border-line rounded-xl p-4"><h3 className="text-[13px] font-semibold">Password and access</h3><p className="text-[12px] text-muted mt-2">New employees must replace their system-generated password on first login. Password changes and account activity are recorded for HR review.</p><button className="mt-4 px-3 py-2 rounded-lg border border-line text-[12px] font-medium">Change password</button></div>}
+          {tab==='security'&&<form onSubmit={submitPassword} className="max-w-xl border border-line rounded-xl p-4"><h3 className="text-[13px] font-semibold">Password and access</h3><p className="text-[12px] text-muted mt-2">New employees must replace their system-generated password on first login. Password changes and account activity are recorded for HR review.</p>{user?.mustChangePassword&&<div className="mt-3 text-[11px] text-[#92400e] bg-[#fef7e7] border border-[#fde68a] rounded-lg px-3 py-2">Change the temporary password before opening the rest of DayFlow.</div>}<div className="mt-4 space-y-3"><input required type="password" autoComplete="current-password" value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} placeholder="Current password" className="w-full px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/><input required minLength={8} type="password" autoComplete="new-password" value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="New password (minimum 8 characters)" className="w-full px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/><input required minLength={8} type="password" autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Confirm new password" className="w-full px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/></div>{securityError&&<div className="mt-3 text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{securityError}</div>}{securityMessage&&<div className="mt-3 text-[11px] text-accent bg-accent-soft border border-[#d6e8db] rounded-lg px-3 py-2">{securityMessage}</div>}<button disabled={changingPassword} className="mt-4 px-3 py-2 rounded-lg bg-ink text-white text-[12px] font-medium disabled:opacity-60">{changingPassword?'Changing password…':'Change password'}</button></form>}
         </div>
       </div>
     </div>

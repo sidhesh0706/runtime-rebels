@@ -1,8 +1,18 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/store'
 
 export default function Guard(){
   const { leaves, employees, reviewLeave } = useAuth()
   const pending=leaves.filter(l=>l.status==='Pending')
+  const [reviewing,setReviewing]=useState('')
+  const [error,setError]=useState('')
+  async function decide(leaveId:string,status:'Approved'|'Rejected'){
+    setReviewing(leaveId);setError('')
+    const result=await reviewLeave(leaveId,status,status==='Approved'?'Approved after staffing review':'Rejected due to staffing coverage')
+    if(!result.ok)setError(result.error||'Could not review leave')
+    setReviewing('')
+  }
   return (
     <div className="space-y-5">
       <div>
@@ -55,9 +65,9 @@ export default function Guard(){
                     </div>
                   )}
                   <div className="mt-4 flex gap-2">
-                    <button onClick={()=>reviewLeave(l.id,'Approved','Approved after staffing review')} className="px-3.5 py-2 rounded-lg bg-ink text-white text-[12px] font-medium hover:bg-black">Approve</button>
-                    <button onClick={()=>reviewLeave(l.id,'Rejected','Rejected due to staffing coverage')} className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium">Reject</button>
-                    <button className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium ml-auto">Review team</button>
+                    <button disabled={reviewing===l.id} onClick={()=>decide(l.id,'Approved')} className="px-3.5 py-2 rounded-lg bg-ink text-white text-[12px] font-medium hover:bg-black disabled:opacity-50">Approve</button>
+                    <button disabled={reviewing===l.id} onClick={()=>decide(l.id,'Rejected')} className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium disabled:opacity-50">Reject</button>
+                    <Link to="/employees" className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium ml-auto">Review team</Link>
                   </div>
                 </div>
               </div>
@@ -66,6 +76,7 @@ export default function Guard(){
         </div>
       )}
 
+      {error&&<div className="text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{error}</div>}
       <div className="bg-paper border border-line rounded-xl px-4 py-4">
         <div className="text-[12px] font-medium">How it works</div>
         <div className="text-[11px] text-muted mt-1 leading-relaxed">Guard checks durable workspace records for overlapping approved/pending leaves in the same department and calculates resulting availability. It never auto-approves — it supports your decision.</div>

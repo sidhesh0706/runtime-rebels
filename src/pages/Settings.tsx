@@ -4,16 +4,16 @@ export default function Settings(){
       <div>
         <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Settings</div>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Settings</h1>
-        <p className="text-[13px] text-muted mt-1">Workspace preferences • Durable cloud storage</p>
+        <p className="text-[13px] text-muted mt-1">Workspace preferences • Self-managed local storage</p>
       </div>
       <div className="bg-white border border-line rounded-xl">
         <div className="px-5 py-4 border-b border-line"><h3 className="text-[13px] font-semibold">DayFlow data layer</h3></div>
         <div className="p-5">
           <div className="text-[12px] font-mono bg-paper border border-line rounded-lg p-3 leading-relaxed">
-            D1 binding: DB • R2 binding: FILES<br/>
-            Records: users, sessions, snapshots, documents, notifications, audit_logs
+            Database: PostgreSQL 16 • API: Express<br/>
+            Storage: local protected uploads • No third-party backend service
           </div>
-          <div className="mt-3 text-[11px] text-muted">Passwords use PBKDF2-SHA256. Sessions are HttpOnly cookies. Attachments are private R2 objects.</div>
+          <div className="mt-3 text-[11px] text-muted">Passwords use PBKDF2-SHA256. Sessions use HttpOnly cookies. Attachments stay on the application server and require an authenticated download.</div>
         </div>
       </div>
       <div className="bg-white border border-line rounded-xl p-5">

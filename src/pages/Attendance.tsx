@@ -4,12 +4,23 @@ import { useState } from 'react'
 export default function Attendance(){
   const { employees, attendance, checkIn, checkOut, user } = useAuth()
   const isAdmin=user?.role==='admin'||user?.role==='hr'
-  const today=new Date().toISOString().slice(0,10)
-  const [tab,setTab]=useState<'today'|'week'>('today')
+  const today=indiaDate()
+  const [tab,setTab]=useState<'today'|'week'|'month'>('today')
+  const [search,setSearch]=useState('')
+  const [busy,setBusy]=useState(false)
+  const [error,setError]=useState('')
   const myEmp = employees.find(e=>e.email===user?.email)
-  const list = isAdmin ? employees : (myEmp?[myEmp]:[])
+  const list = (isAdmin ? employees : (myEmp?[myEmp]:[])).filter(employee=>!search||[employee.name,employee.id,employee.department].some(value=>value.toLowerCase().includes(search.toLowerCase())))
   const todayRecord=attendance.find(a=>a.employeeId===myEmp?.id && a.date===today)
-  const [checkedIn,setCheckedIn]=useState(!!todayRecord?.checkIn&&!todayRecord?.checkOut)
+  const checkedIn=!!todayRecord?.checkIn&&!todayRecord?.checkOut
+
+  async function runAttendance(action:'in'|'out'){
+    if(!myEmp)return
+    setBusy(true);setError('')
+    const result=await (action==='in'?checkIn(myEmp.id):checkOut(myEmp.id))
+    if(!result.ok)setError(result.error||'Attendance action failed')
+    setBusy(false)
+  }
 
   return (
     <div className="space-y-5">
@@ -22,8 +33,11 @@ export default function Attendance(){
         <div className="flex gap-1.5 p-1 rounded-lg border border-line bg-paper">
           <button onClick={()=>setTab('today')} className={`px-3 py-1.5 rounded-md text-[12px] font-medium ${tab==='today'?'bg-ink text-white':'text-muted hover:text-ink'}`}>Today</button>
           <button onClick={()=>setTab('week')} className={`px-3 py-1.5 rounded-md text-[12px] font-medium ${tab==='week'?'bg-ink text-white':'text-muted hover:text-ink'}`}>Week</button>
+          <button onClick={()=>setTab('month')} className={`px-3 py-1.5 rounded-md text-[12px] font-medium ${tab==='month'?'bg-ink text-white':'text-muted hover:text-ink'}`}>Month</button>
         </div>
       </div>
+
+      {isAdmin&&<div className="bg-white border border-line rounded-xl p-3"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search employee, ID, or department…" className="w-full px-3 py-2 border border-line rounded-lg bg-paper text-[12px]"/></div>}
 
       {!isAdmin && (
         <div className="bg-white border border-line rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
@@ -32,9 +46,10 @@ export default function Attendance(){
             <div className="text-[11px] text-muted">{checkedIn? 'You are checked in':'You are not checked in yet'}</div>
           </div>
           <div className="flex gap-2">
-            <button disabled={checkedIn||!!todayRecord?.checkOut} onClick={()=>{ if(myEmp){ checkIn(myEmp.id); setCheckedIn(true)}}} className="px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-medium disabled:opacity-40 hover:bg-[#155a3d]">Check In</button>
-            <button disabled={!checkedIn} onClick={()=>{ if(myEmp){ checkOut(myEmp.id); setCheckedIn(false)}}} className="px-4 py-2 rounded-lg border border-line bg-white text-[13px] font-medium disabled:opacity-40">Check Out</button>
+            <button disabled={busy||checkedIn||!!todayRecord?.checkOut} onClick={()=>runAttendance('in')} className="px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-medium disabled:opacity-40 hover:bg-[#155a3d]">{busy?'Please wait…':'Check In'}</button>
+            <button disabled={busy||!checkedIn} onClick={()=>runAttendance('out')} className="px-4 py-2 rounded-lg border border-line bg-white text-[13px] font-medium disabled:opacity-40">Check Out</button>
           </div>
+          {error&&<div className="basis-full text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{error}</div>}
         </div>
       )}
 
@@ -60,7 +75,7 @@ export default function Attendance(){
                       </tr>
                     )
                   })
-                : Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); return d.toISOString().slice(0,10)}).flatMap(day=> list.slice(0,3).map(emp=>{
+                : (tab==='week'?Array.from({length:7},(_,i)=>indiaDate(-6+i)):Array.from({length:31},(_,i)=>indiaDate(-30+i))).flatMap(day=> list.map(emp=>{
                     const a=attendance.find(x=>x.employeeId===emp.id && x.date===day)
                     return (
                       <tr key={emp.id+day} className="hover:bg-paper/50">
@@ -95,4 +110,10 @@ export default function Attendance(){
       </div>
     </div>
   )
+}
+
+function indiaDate(offset=0){
+  const date=new Date()
+  date.setDate(date.getDate()+offset)
+  return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).format(date)
 }

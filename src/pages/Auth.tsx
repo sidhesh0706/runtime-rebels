@@ -47,7 +47,7 @@ export function Login(){
               <button onClick={()=>{setEmail('admin@dayflow.co'); setPass(DEMO_ADMIN_PASSWORD)}} className="text-[11px] px-2.5 py-1.5 rounded-md border border-line bg-ink text-white">Admin demo</button>
               <button onClick={()=>{setEmail('isha@dayflow.co'); setPass(DEMO_EMPLOYEE_PASSWORD)}} className="text-[11px] px-2.5 py-1.5 rounded-md border border-line bg-white">Employee demo</button>
             </div>
-            <form onSubmit={async e=>{e.preventDefault();setErr('');setSubmitting(true);try{const ok=await login(email,pass);if(!ok)setErr('Invalid credentials');else nav('/')}catch{setErr('Could not reach the secure sign-in service')}finally{setSubmitting(false)}}} className="mt-5 space-y-3">
+            <form onSubmit={async e=>{e.preventDefault();setErr('');setSubmitting(true);try{const result=await login(email,pass);if(!result.ok)setErr(result.error||'Invalid credentials');else nav(result.mustChangePassword?'/profile':'/')}catch{setErr('Could not reach the local sign-in service')}finally{setSubmitting(false)}}} className="mt-5 space-y-3">
               <div>
                 <label className="text-[11px] font-medium">Login ID or work email</label>
                 <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="OIARSH20200001 or you@company.co" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-line bg-paper outline-none text-[13px]" />

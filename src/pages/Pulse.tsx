@@ -4,6 +4,7 @@ export default function Pulse(){
   const { employees, attendance, leaves } = useAuth()
   const m=useMetrics()
   const depts=departmentStats(employees, attendance, leaves)
+  const engineering=depts.find(d=>d.dept==='Engineering')
   const days = Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); return d.toISOString().slice(0,10)})
   const deptList=['Engineering','Design','Marketing','Sales','Human Resources','Finance'] as const
   return (
@@ -35,7 +36,7 @@ export default function Pulse(){
               ))}
             </div>
             <div className="mt-4 text-[12px] leading-relaxed bg-paper border border-line rounded-lg px-3 py-3">
-              <span className="font-medium">Insight → Explanation → Action:</span> Engineering availability: {depts.find(d=>d.dept==='Engineering')?.availability}% — 20 total, {depts.find(d=>d.dept==='Engineering')?.present} available, {depts.find(d=>d.dept==='Engineering')?.onLeave} on leave, {depts.find(d=>d.dept==='Engineering')?.absent} absent.
+              <span className="font-medium">Insight → Explanation → Action:</span> Engineering availability: {engineering?.availability}% — {engineering?.total} total, {engineering?.present} available, {engineering?.onLeave} on leave, {engineering?.absent} absent.
             </div>
           </div>
         </div>
@@ -56,7 +57,7 @@ export default function Pulse(){
       <div className="bg-white border border-line rounded-xl">
         <div className="px-5 py-4 border-b border-line">
           <h3 className="text-[13px] font-semibold">Workforce heatmap</h3>
-          <p className="text-[11px] text-muted">Availability by team × last 7 days • Synced workspace data</p>
+          <p className="text-[11px] text-muted">Availability by team × last 7 days • Local PostgreSQL data</p>
         </div>
         <div className="p-4 overflow-auto">
           <div className="min-w-[640px]">

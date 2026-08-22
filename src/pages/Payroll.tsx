@@ -9,8 +9,16 @@ export default function Payroll(){
   const list = isAdmin? employees : [me]
   const [selected,setSelected]=useState(me.id)
   const [wage,setWage]=useState(me.salary)
+  const [saving,setSaving]=useState(false)
+  const [error,setError]=useState('')
   const selectedEmployee=employees.find(e=>e.id===selected)||me
   const selectedPayroll=data.payroll.find(p=>p.employeeId===selectedEmployee.id)
+  async function recalculate(){
+    setSaving(true);setError('')
+    const result=await updatePayrollWage(selectedEmployee.id,wage)
+    if(!result.ok)setError(result.error||'Could not update payroll')
+    setSaving(false)
+  }
   return (
     <div className="space-y-5">
       <div>
@@ -24,7 +32,8 @@ export default function Payroll(){
         </div>
         <div className="divide-y divide-line">
           {list.map(emp=>{
-            const p=data.payroll.find(x=>x.employeeId===emp.id)!
+            const p=data.payroll.find(x=>x.employeeId===emp.id)
+            if(!p)return null
             return (
               <div key={emp.id} className="px-4 py-4 flex flex-wrap lg:grid lg:grid-cols-[1.6fr_0.9fr_0.9fr_0.9fr_1fr_80px] gap-3 lg:gap-0 items-center">
                 <div className="flex items-center gap-3 min-w-[180px] flex-1 lg:flex-none">
@@ -45,7 +54,8 @@ export default function Payroll(){
         </div>
       </div>
       {selectedPayroll&&<div className="bg-white border border-line rounded-xl p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-[14px] font-semibold">{selectedEmployee.name} · Salary structure</h2><p className="text-[11px] text-muted mt-1">{isAdmin?'Editable wage with automatically calculated components':'Read-only earnings and deductions'}</p></div>{isAdmin&&<div className="flex gap-2"><input type="number" min="0" value={wage} onChange={e=>setWage(Number(e.target.value))} className="w-32 px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/><button onClick={()=>updatePayrollWage(selectedEmployee.id,wage)} className="px-3 py-2 rounded-lg bg-ink text-white text-[12px] font-medium">Recalculate</button></div>}</div>
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-[14px] font-semibold">{selectedEmployee.name} · Salary structure</h2><p className="text-[11px] text-muted mt-1">{isAdmin?'Editable wage with automatically calculated components':'Read-only earnings and deductions'}</p></div>{isAdmin&&<div className="flex gap-2"><input type="number" min="0" value={wage} onChange={e=>setWage(Number(e.target.value))} className="w-32 px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/><button disabled={saving} onClick={recalculate} className="px-3 py-2 rounded-lg bg-ink text-white text-[12px] font-medium disabled:opacity-60">{saving?'Saving…':'Recalculate'}</button></div>}</div>
+        {error&&<div className="mt-3 text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{error}</div>}
         <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">{[
           ['Basic salary',selectedPayroll.base],['HRA',selectedPayroll.hra],['Standard allowance',selectedPayroll.standardAllowance],['Performance bonus',selectedPayroll.performanceBonus],['Leave travel allowance',selectedPayroll.lta],['Fixed allowance',selectedPayroll.fixedAllowance],['Employee PF',selectedPayroll.pfEmployee],['Employer PF',selectedPayroll.pfEmployer],['Professional tax',selectedPayroll.professionalTax],['Net pay',selectedPayroll.net]
         ].map(([label,value])=><div key={String(label)} className="rounded-lg border border-line bg-paper p-3"><div className="text-[10px] text-muted uppercase tracking-[0.05em]">{label}</div><div className="text-[13px] font-semibold mt-1 tabular-nums">{formatCurrency(Number(value||0))}</div></div>)}</div>

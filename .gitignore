@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 dist-ssr/
+server-dist/
 .next/
 .vinext/
 out/
@@ -39,4 +40,6 @@ Thumbs.db
 # Deployment and temporary files
 .vercel/
 .wrangler/
+server/uploads/*
+!server/uploads/.gitkeep
 tmp/

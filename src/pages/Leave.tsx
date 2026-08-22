@@ -3,7 +3,7 @@ import { useAuth } from '../lib/store'
 import { Link } from 'react-router-dom'
 
 export default function Leave(){
-  const { employees, leaves, updateLeaves, reviewLeave, user } = useAuth()
+  const { employees, leaves, createLeave, reviewLeave, user, data } = useAuth()
   const isAdmin=user?.role==='admin'||user?.role==='hr'
   const me = employees.find(e=>e.email===user?.email) || employees[0]
   const [type,setType]=useState('Paid')
@@ -12,27 +12,32 @@ export default function Leave(){
   const [reason,setReason]=useState('')
   const [attachment,setAttachment]=useState('')
   const [attachmentKey,setAttachmentKey]=useState('')
-  const [attachmentUrl,setAttachmentUrl]=useState('')
   const [uploading,setUploading]=useState(false)
+  const [submitting,setSubmitting]=useState(false)
   const [error,setError]=useState('')
   const [comments,setComments]=useState<Record<string,string>>({})
+  const [reviewing,setReviewing]=useState('')
+  const [reviewError,setReviewError]=useState('')
   const days = Math.max(1, Math.ceil((new Date(end).getTime()-new Date(start).getTime())/86400000)+1)
 
   const myLeaves = leaves.filter(l=> l.employeeId===me.id)
   const allPending = leaves.filter(l=>l.status==='Pending')
+  const balances=(data.leaveBalances||[]).filter(balance=>balance.employeeId===me.id)
+  const year=new Date().getFullYear()
 
-  function submit(){
+  async function submit(){
     setError('')
     if(!reason.trim()){setError('Add remarks for the request');return}
     if(end<start){setError('End date must be on or after start date');return}
     if(type==='Sick'&&!attachment){setError('Attach a sick-leave certificate');return}
     if(myLeaves.some(l=>l.status!=='Rejected'&&!(l.endDate<start||l.startDate>end))){setError('This request overlaps an existing leave');return}
-    const id='LV'+Date.now()
-    updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, attachmentName:attachment||undefined, attachmentKey:attachmentKey||undefined, attachmentUrl:attachmentUrl||undefined, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
+    setSubmitting(true)
+    const result=await createLeave({employeeId:me.id,type:type as 'Paid'|'Sick'|'Unpaid',startDate:start,endDate:end,reason,attachmentName:attachment||undefined,attachmentKey:attachmentKey||undefined})
+    setSubmitting(false)
+    if(!result.ok){setError(result.error||'Could not submit leave');return}
     setReason('')
     setAttachment('')
     setAttachmentKey('')
-    setAttachmentUrl('')
   }
 
   async function uploadAttachment(file?:File){
@@ -43,9 +48,18 @@ export default function Leave(){
       const response=await fetch('/api/uploads',{method:'POST',body:form})
       const result:any=await response.json()
       if(!response.ok)throw new Error(result.error||'Upload failed')
-      setAttachment(result.fileName);setAttachmentKey(result.key);setAttachmentUrl(result.url)
-    }catch(error){setAttachment('');setAttachmentKey('');setAttachmentUrl('');setError(error instanceof Error?error.message:'Upload failed')}
+      setAttachment(result.fileName);setAttachmentKey(result.key)
+    }catch(error){setAttachment('');setAttachmentKey('');setError(error instanceof Error?error.message:'Upload failed')}
     finally{setUploading(false)}
+  }
+
+  async function decide(leaveId:string,status:'Approved'|'Rejected'){
+    const comment=comments[leaveId]||''
+    if(status==='Rejected'&&!comment.trim()){setReviewError('Add a rejection comment');return}
+    setReviewing(leaveId);setReviewError('')
+    const result=await reviewLeave(leaveId,status,comment||'Approved by HR')
+    if(!result.ok)setReviewError(result.error||'Could not review leave')
+    setReviewing('')
   }
 
   function guardFor(leaveId:string){
@@ -68,6 +82,10 @@ export default function Leave(){
         </div>
         {isAdmin && <Link to="/guard" className="px-3 py-1.5 rounded-lg bg-ink text-white text-[12px] font-medium">Open Guard</Link>}
       </div>
+
+      <div className="grid sm:grid-cols-3 gap-3">{balances.map(balance=><div key={balance.code} className="bg-white border border-line rounded-xl p-4"><div className="text-[10px] uppercase tracking-[.08em] text-muted">{balance.name}</div><div className="mt-1 text-[20px] font-semibold">{balance.remaining}<span className="text-[11px] text-muted font-normal"> days remaining</span></div><div className="mt-2 h-1.5 bg-paper rounded-full overflow-hidden"><div className="h-full bg-accent" style={{width:`${Math.max(0,Math.min(100,balance.allocated?balance.remaining/balance.allocated*100:0))}%`}}/></div><div className="mt-1 text-[10px] text-muted">{balance.used} used of {balance.allocated}</div></div>)}{!balances.length&&<div className="sm:col-span-3 border border-dashed border-line rounded-xl p-4 text-[12px] text-muted">Leave balances are available after employee provisioning.</div>}</div>
+
+      <section className="bg-white border border-line rounded-xl p-4"><div className="flex flex-wrap justify-between gap-2"><div><h2 className="text-[13px] font-semibold">{year} time-off calendar</h2><p className="text-[11px] text-muted">Approved leave and public holidays are synchronized from PostgreSQL.</p></div><div className="flex gap-3 text-[10px]"><span><i className="inline-block w-2 h-2 rounded-full bg-[#1d4ed8] mr-1"/>Leave</span><span><i className="inline-block w-2 h-2 rounded-full bg-[#b54708] mr-1"/>Holiday</span></div></div><div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-4 gap-2">{(data.holidays||[]).filter(h=>h.date.startsWith(String(year))).map(holiday=><div key={holiday.id} className="border border-line rounded-lg p-3"><div className="text-[11px] font-medium">{holiday.name}</div><div className="text-[10px] text-muted mt-1">{new Date(`${holiday.date}T00:00:00`).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div></div>)}{leaves.filter(l=>l.status==='Approved'&&l.startDate.startsWith(String(year))).slice(0,5).map(leave=><div key={leave.id} className="border border-[#dbeafe] bg-[#eff6ff] rounded-lg p-3"><div className="text-[11px] font-medium">{employees.find(e=>e.id===leave.employeeId)?.name||'Employee'} · {leave.type}</div><div className="text-[10px] text-muted mt-1">{leave.startDate} → {leave.endDate}</div></div>)}</div></section>
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="bg-white border border-line rounded-xl">
@@ -92,7 +110,7 @@ export default function Leave(){
             </div>
             {type==='Sick'&&<label className="block rounded-lg border border-dashed border-line bg-paper px-3 py-2.5 text-[11px] text-muted cursor-pointer"><span>{uploading?'Uploading securely…':attachment||'Attach sick-leave certificate'}</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" disabled={uploading} onChange={e=>uploadAttachment(e.target.files?.[0])}/></label>}
             {error&&<div className="text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{error}</div>}
-            <button onClick={submit} className="w-full py-2 rounded-lg bg-accent text-white text-[13px] font-medium hover:bg-[#155a3d]">Submit request</button>
+            <button disabled={submitting||uploading} onClick={submit} className="w-full py-2 rounded-lg bg-accent text-white text-[13px] font-medium hover:bg-[#155a3d] disabled:opacity-60">{submitting?'Submitting…':'Submit request'}</button>
             <p className="text-[11px] text-muted text-center leading-relaxed">Reviewed by HR. Guard checks for staffing conflicts.</p>
           </div>
         </div>
@@ -153,13 +171,14 @@ export default function Leave(){
 
                       <div className="mt-3 flex gap-2">
                         <input value={comments[l.id]||''} onChange={e=>setComments({...comments,[l.id]:e.target.value})} placeholder="Decision comment" className="flex-1 min-w-[140px] px-3 py-1.5 rounded-lg border border-line bg-paper text-[11px]"/>
-                        <button onClick={()=>reviewLeave(l.id,'Approved',comments[l.id]||'Approved by HR')} className="px-3 py-1.5 rounded-lg bg-accent text-white text-[12px] font-medium">Approve</button>
-                        <button disabled={!comments[l.id]?.trim()} onClick={()=>reviewLeave(l.id,'Rejected',comments[l.id])} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium disabled:opacity-40">Reject</button>
-                        <button className="ml-auto px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium">Review team</button>
+                        <button disabled={reviewing===l.id} onClick={()=>decide(l.id,'Approved')} className="px-3 py-1.5 rounded-lg bg-accent text-white text-[12px] font-medium disabled:opacity-50">Approve</button>
+                        <button disabled={reviewing===l.id||!comments[l.id]?.trim()} onClick={()=>decide(l.id,'Rejected')} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium disabled:opacity-40">Reject</button>
+                        <Link to="/employees" className="ml-auto px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium">Review team</Link>
                       </div>
                     </div>
                   )
                 })}
+                {reviewError&&<div className="text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{reviewError}</div>}
                 {allPending.length===0 && <div className="text-[12px] text-muted text-center py-8 border border-dashed border-line rounded-lg">All caught up — no pending requests.</div>}
               </div>
             </div>
