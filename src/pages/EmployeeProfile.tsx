@@ -73,13 +73,14 @@ export default function EmployeeProfile(){
 
 
   if(!emp) return <div className="p-6 text-[13px] text-muted">Employee not found. <Link to="/employees" className="underline">Back</Link></div>
+  const employee = emp
 
   const today=new Date().toISOString().slice(0,10)
   const att=attendance.find(a=>a.employeeId===emp.id && a.date===today)
   const lv=leaves.find(l=>l.employeeId===emp.id && l.status==='Approved' && l.startDate<=today && l.endDate>=today)
   const status = lv? 'On Leave' : att?.status || 'Present'
   const statusBadge = status==='Present' ? 'bg-[#edf4ef] text-[#1a6b4a] border-[#d6e8db]' : status==='On Leave' ? 'bg-[#eff6ff] text-[#1d4ed8] border-[#dbeafe]' : 'bg-[#fdf2f2] text-[#7a2a2a] border-[#f0d6d6]'
-  const payroll=data.payroll.find(p=>p.employeeId===emp.id)
+  const payroll=data.payroll.find(p=>p.employeeId===employee.id)
   const endorsements = emp.skillEndorsements || {}; const docs = emp.documents||[]
 
   // recompute when wage changes
@@ -106,11 +107,11 @@ export default function EmployeeProfile(){
   }
   function totalComp(){ return comps.reduce((a:any,b:any)=>a+ (b.computed||0),0) }
   function saveSalary(){
-    updateEmployee(emp.id, { monthlyWage:mWage, yearlyWage:yWage, workingDaysPerWeek:wDaysWeek, breakTimeHrs:breakHrs, salaryComponents:comps, pfEmployerRate:pfEmpRate, pfEmployeeRate:pfEeRate, professionalTax:ptax })
+    updateEmployee(employee.id, { monthlyWage:mWage, yearlyWage:yWage, workingDaysPerWeek:wDaysWeek, breakTimeHrs:breakHrs, salaryComponents:comps, pfEmployerRate:pfEmpRate, pfEmployeeRate:pfEeRate, professionalTax:ptax })
   }
 
-  function saveHeader(){ updateEmployee(emp.id, { name:hName||emp.name, email:hEmail||emp.email, phone:hPhone||emp.phone, company:hCompany||emp.company, department:hDept as any||emp.department, manager:hManager||emp.manager, location:hLocation||emp.location }); setEditingHeader(false) }
-  function startHeaderEdit(){ setHName(emp.name); setHEmail(emp.email); setHPhone(emp.phone); setHCompany(emp.company||''); setHDept(emp.department); setHManager(emp.manager||''); setHLocation(emp.location||''); setEditingHeader(true) }
+  function saveHeader(){ updateEmployee(employee.id, { name:hName||employee.name, email:hEmail||employee.email, phone:hPhone||employee.phone, company:hCompany||employee.company, department:hDept as any||employee.department, manager:hManager||employee.manager, location:hLocation||employee.location }); setEditingHeader(false) }
+  function startHeaderEdit(){ setHName(employee.name); setHEmail(employee.email); setHPhone(employee.phone); setHCompany(employee.company||''); setHDept(employee.department); setHManager(employee.manager||''); setHLocation(employee.location||''); setEditingHeader(true) }
 
   const total = totalComp()
   const exceeds = total > mWage

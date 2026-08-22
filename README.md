@@ -4,28 +4,9 @@ DayFlow is a self-managed workforce command center for attendance, leave, payrol
 
 ## Implemented features
 
-- Secure administrator and employee login using PBKDF2-SHA256 password hashes
-- Database-backed, expiring HttpOnly sessions and login-attempt lockout
-- Role-based authorization for profiles, attendance, leave, payroll, and documents
-- HR-provisioned employee accounts with generated login IDs and temporary passwords
-- Mandatory password replacement before a new employee can make changes
-- Relational employee, private-information, banking, schedule, attendance, leave, payroll, notification, document, and audit records
-- Server-validated check-in/check-out with India-time display and calculated work hours
-- Leave overlap, working-day, balance, and sick-certificate validation
-- Leave approvals synchronized into attendance, balances, notifications, and audit history
-- Protected local PDF/image uploads available only to the owning employee and company managers
-- Payroll recalculation with salary components, PF, professional tax, and employee-level privacy
-- Workforce Pulse, department availability, Smart Leave Guard, and deterministic DayFlow AI views
-- Responsive admin and employee interfaces
 
 ## Stack
 
-- React 19, TypeScript, Vite 8, and Tailwind CSS
-- Express 5 API
-- PostgreSQL 16 through `pg`
-- Docker Compose for the local database
-- Local protected filesystem storage under `server/uploads`
-- React Router, Recharts, and Lucide React
 
 PostgreSQL is authoritative. The application does not persist workforce records in browser storage.
 
@@ -33,9 +14,6 @@ PostgreSQL is authoritative. The application does not persist workforce records 
 
 Requirements:
 
-- Node.js 22 or newer
-- npm
-- Docker Desktop
 
 From the project folder:
 
