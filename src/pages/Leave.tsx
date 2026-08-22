@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { getMyEmployee, useAuth } from '../lib/store'
 import { Search, Plus, X, Calendar as CalIcon, Paperclip } from 'lucide-react'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 function CalendarGrid({ leavesForMonth, month, year }:{ leavesForMonth: string[], month:number, year:number }){
   const first=new Date(year,month,1).getDay()
@@ -54,15 +55,6 @@ export default function Leave(){
     const id='LV'+Date.now()
     const saved=await updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
     if(saved){setReason('');setShowReq(false)}
-  }
-
-  function guardFor(leaveId:string){
-    const l=leaves.find(x=>x.id===leaveId)!
-    const emp=employees.find(e=>e.id===l.employeeId)!
-    const deptEmps=employees.filter(e=>e.department===emp.department)
-    const overlapping = leaves.filter(x=> x.id!==l.id && (x.status==='Approved' || x.status==='Pending') && employees.find(e=>e.id===x.employeeId)?.department===emp.department && !(x.endDate < l.startDate || x.startDate > l.endDate))
-    const avail = Math.round(((deptEmps.length - overlapping.length -1)/deptEmps.length)*100)
-    return { emp, overlapping, avail, total:deptEmps.length }
   }
 
   // employee calendar data: collect approved leave dates — filtered by subTab for correct highlighting
@@ -128,7 +120,7 @@ export default function Leave(){
                     return (
                       <tr key={l.id} className="hover:bg-paper/40">
                         <td className="px-4 py-3 flex items-center gap-2">
-                          <img src={emp.avatar} className="w-6 h-6 rounded-full object-cover"/>
+                          <EmployeeAvatar employee={emp} className="w-6 h-6"/>
                           <span className="font-medium text-[12px]">{emp.name}</span>
                           <span className="text-[11px] text-muted hidden md:inline">• {emp.department}</span>
                         </td>
@@ -168,7 +160,7 @@ export default function Leave(){
                       const unpaidUsed=empLeaves.filter(l=>l.type==='Unpaid' && l.status==='Approved').reduce((a,b)=>a+b.days,0)
                       return (
                         <tr key={emp.id} className="hover:bg-paper/40">
-                          <td className="px-3 py-2.5 flex items-center gap-2"><img src={emp.avatar} className="w-6 h-6 rounded-full"/><span className="font-medium">{emp.name}</span><span className="text-[11px] text-muted hidden md:inline">• {emp.department}</span></td>
+                          <td className="px-3 py-2.5 flex items-center gap-2"><EmployeeAvatar employee={emp} className="w-6 h-6"/><span className="font-medium">{emp.name}</span><span className="text-[11px] text-muted hidden md:inline">• {emp.department}</span></td>
                           <td className="px-3 py-2.5"><span className="font-medium">{24-paidUsed}</span><span className="text-muted"> / 24</span><span className="text-[11px] text-muted ml-1">({paidUsed} used)</span><div className="mt-1 h-1 bg-paper border border-line rounded-full overflow-hidden"><div className="h-full bg-ink" style={{width: `${((24-paidUsed)/24)*100}%`}}/></div></td>
                           <td className="px-3 py-2.5"><span className="font-medium">{12-sickUsed}</span><span className="text-muted"> / 12</span><span className="text-[11px] text-muted ml-1">({sickUsed} used)</span><div className="mt-1 h-1 bg-paper border border-line rounded-full overflow-hidden"><div className="h-full bg-ink" style={{width: `${((12-sickUsed)/12)*100}%`}}/></div></td>
                           <td className="px-3 py-2.5"><span className="font-medium">{30-unpaidUsed}</span><span className="text-muted"> / 30</span></td>
@@ -252,26 +244,6 @@ export default function Leave(){
         )}
       </div>
 
-      {/* Admin guard details expansion */}
-      {isAdmin && pending.length>0 && activeTab==='timeoff' && (
-        <div className="bg-white border border-line rounded-[12px] p-4">
-          <div className="text-[12px] font-semibold">Smart Leave Guard — staffing checks</div>
-          <div className="text-[11px] text-muted">Analyzes overlapping leaves per department to surface staffing concerns before approval.</div>
-          <div className="mt-3 space-y-3">
-            {pending.slice(0,2).map(l=>{
-              const g=guardFor(l.id)
-              const concern=g.avail <70
-              return (
-                <div key={l.id} className={`rounded-[10px] border p-3 ${concern?'bg-[#fef7e7] border-[#f2e0a6]':'bg-[#edf4ef] border-[#d6e8db]'}`}>
-                  <div className="text-[12px] font-medium">{concern?'Potential staffing concern':'No major concern'} — {g.emp.department} → {g.avail}% availability if approved</div>
-                  <div className="text-[11px] text-muted mt-1">{g.emp.name} {l.type} {l.startDate}→{l.endDate} overlaps with {g.overlapping.length} others.</div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Request modal */}
       {showReq && (
         <div className="fixed inset-0 z-50 grid place-items-center p-4">
@@ -311,7 +283,7 @@ export default function Leave(){
                 <button onClick={submit} className="flex-1 py-2.5 rounded-[10px] bg-[#1a6b4a] text-white text-[13px] font-medium hover:bg-[#155a3d]">Submit</button>
                 <button onClick={()=>setShowReq(false)} className="px-5 py-2.5 rounded-[10px] border border-line bg-white text-[13px] font-medium hover:bg-paper">Cancel</button>
               </div>
-              <div className="text-[11px] text-muted text-center">Reviewed by HR. Guard checks for staffing conflicts.</div>
+              <div className="text-[11px] text-muted text-center">Submitted requests are reviewed by HR.</div>
             </div>
           </div>
         </div>

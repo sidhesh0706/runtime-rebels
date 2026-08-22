@@ -3,6 +3,7 @@ import { Users, CalendarCheck, CalendarDays, Settings, HelpCircle, LogOut, Menu,
 import { useAuth, getMyEmployee } from '../lib/store'
 import { useState, useRef, useEffect } from 'react'
 import CommandPalette from './CommandPalette'
+import { EmployeeAvatar } from './EmployeeAvatar'
 
 export default function Layout({children}:{children:React.ReactNode}){
   const { user, logout, employees, attendance, checkIn, checkOut } = useAuth()
@@ -32,6 +33,7 @@ export default function Layout({children}:{children:React.ReactNode}){
 
   // find own employee record for checkin status — use helper for demo accounts
   const myEmp = getMyEmployee(user, employees)
+  const avatarEmployee = myEmp || {id:user.id,name:user.name,avatar:user.avatar}
   const today=new Date().toISOString().slice(0,10)
   const myAtt=attendance.find(a=>a.employeeId===myEmp?.id && a.date===today)
   const isCheckedIn = !!(myAtt && myAtt.checkIn && !myAtt.checkOut)
@@ -93,7 +95,7 @@ export default function Layout({children}:{children:React.ReactNode}){
         <div className="p-3 border-t border-white/[0.07]">
           <div className="flex items-center gap-2.5 px-2 py-2 rounded-[10px] hover:bg-white/[0.04] transition">
             <div className="relative">
-              <img src={user.avatar} className="w-8 h-8 rounded-full object-cover"/>
+              <EmployeeAvatar employee={avatarEmployee} className="w-8 h-8"/>
               <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0f1112] ${dotColor}`} title={dotTitle}/>
             </div>
             <div className="flex-1 min-w-0">
@@ -138,7 +140,7 @@ export default function Layout({children}:{children:React.ReactNode}){
               <div className="relative" ref={ref}>
                 <button onClick={()=>setProfileOpen(v=>!v)} className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border border-line bg-white hover:bg-paper transition">
                   <div className="relative">
-                    <img src={user.avatar} className="w-7 h-7 rounded-full object-cover"/>
+                    <EmployeeAvatar employee={avatarEmployee} className="w-7 h-7"/>
                     <span className={`absolute -bottom-0.5 -right-0.5 w-[9px] h-[9px] rounded-full border-2 border-white ${dotColor}`} title={dotTitle}/>
                   </div>
                   <span className="hidden sm:block text-[12px] font-medium">{user.name.split(' ')[0]}</span>

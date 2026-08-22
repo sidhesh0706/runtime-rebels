@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useAuth, getMyEmployee } from '../lib/store'
 import { Search, Eye, Plus, X, Copy, Check, User, CalendarCheck, CalendarDays, LogOut, ArrowUpRight } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 function statusMeta(status:string){
   if(status==='Present') return { dot:'bg-[#1a6b4a]', badge:'bg-[#edf4ef] text-[#1a6b4a] border-[#d6e8db]', label:'Present' }
@@ -81,7 +82,7 @@ export default function Employees(){
                 <div key={emp.id} onClick={()=>setSelected(emp)} className="group bg-white border border-line rounded-[12px] p-4 hover:border-ink/15 hover:shadow-soft cursor-pointer transition relative">
                   <span className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${meta.dot}`} title={status}/>
                   <div className="flex gap-3">
-                    <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full object-cover border border-line"/>
+                    <EmployeeAvatar employee={emp} className="w-10 h-10"/>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-semibold leading-none truncate">{emp.name}</div>
                       <div className="text-[11px] text-muted truncate">{emp.role}</div>
@@ -171,7 +172,7 @@ export default function Employees(){
             <div className="h-1 bg-ink"/>
             <div className="p-6">
               <div className="flex gap-4">
-                <img src={selected.avatar} className="w-12 h-12 rounded-full object-cover border border-line"/>
+                <EmployeeAvatar employee={selected} className="w-12 h-12"/>
                 <div className="flex-1 min-w-0">
                   <div className="text-[15px] font-semibold leading-none">{selected.name}</div>
                   <div className="text-[12px] text-muted mt-1">{selected.role} • {selected.department}</div>
@@ -251,9 +252,6 @@ export default function Employees(){
                   <div><label className="text-[11px] font-medium">Date of Birth</label><input type="date" value={form.dob} onChange={e=>setForm({...form, dob:e.target.value})} className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px] outline-none focus:border-ink"/></div>
                 </div>
                 {addError && <div className="text-[12px] text-[#7a2a2a] bg-[#fdf2f2] border border-[#f0d6d6] rounded-[10px] px-3 py-2">{addError}</div>}
-                <div className="rounded-[10px] bg-[#faf9f7] border border-line p-3 text-[11px] leading-relaxed text-muted">
-                  System auto-generates <span className="font-mono font-medium">EMP####</span> and <span className="font-mono font-medium">Login ID (DF + initials + number)</span> and a temp password. Private Info / Security are editable by employee after first login; <span className="font-medium text-ink">Salary stays admin-only</span>.
-                </div>
                 <div className="flex gap-2">
                   <button onClick={handleAdd} className="flex-1 py-2.5 rounded-[10px] bg-ink text-white text-[13px] font-medium hover:bg-black">Create Employee</button>
                   <button onClick={()=>setShowAdd(false)} className="px-5 py-2.5 rounded-[10px] border border-line bg-white text-[13px] font-medium">Cancel</button>

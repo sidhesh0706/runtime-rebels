@@ -2,6 +2,7 @@ import { useAuth, useMetrics, departmentStats, getMyEmployee } from '../lib/stor
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, MoreHorizontal, User, CalendarCheck, CalendarDays, LogOut } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 // compact KPI without big icon circles
 function Kpi({ label, value, delta, hint }: { label: string; value: string | number; delta?: string; hint: string }) {
@@ -165,12 +166,12 @@ export function AdminDashboard() {
               const emp = employees.find(e => e.id === l.employeeId)!
               return (
                 <div key={l.id} className="border border-line rounded-lg px-3 py-3 flex gap-3">
-                  <img src={emp.avatar} className="w-8 h-8 rounded-full object-cover" />
+                  <EmployeeAvatar employee={emp} className="w-8 h-8"/>
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] font-medium truncate">{emp.name}</div>
                     <div className="text-[11px] text-muted truncate">{emp.department} • {l.type} • {l.days}d • {l.startDate}</div>
                   </div>
-                  <Link to="/guard" className="text-[11px] h-fit px-2 py-1 rounded-md border border-line bg-paper font-medium whitespace-nowrap">Guard</Link>
+                  <Link to="/time-off" className="text-[11px] h-fit px-2 py-1 rounded-md border border-line bg-paper font-medium whitespace-nowrap">Review</Link>
                 </div>
               )
             }) : <div className="text-[12px] text-muted border border-dashed border-line rounded-lg px-3 py-8 text-center">No pending requests</div>}
@@ -439,7 +440,7 @@ export function EmployeeDashboard() {
           {/* Compact profile — not a giant card */}
           <div className="bg-white border border-line rounded-[12px] p-4">
             <div className="flex gap-3">
-              <img src={me.avatar} alt={me.name} className="w-10 h-10 rounded-full object-cover border border-line shrink-0"/>
+              <EmployeeAvatar employee={me} className="w-10 h-10"/>
               <div className="min-w-0 flex-1">
                 <div className="text-[13px] font-semibold leading-none truncate">{me.name}</div>
                 <div className="text-[11px] text-muted truncate">{me.role} • {me.department}</div>

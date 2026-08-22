@@ -32,7 +32,7 @@ export default function Ai(){
       return { role:'ai', text:`Today: ${m.present} present, ${m.onLeave} on leave, ${m.absent} absent. Workforce Pulse ${m.pulse}% (${m.pulseLabel}). Lowest: ${low.dept} ${low.availability}%. ${m.pending} pending approvals.`, actions:[{label:'Open dashboard',to:'/'}]}
     }
     if(qq.includes('staffing')||qq.includes('concern')){
-      if(low.availability<70) return { role:'ai', text:`Yes — ${low.dept} at ${low.availability}% availability. Approving overlapping leave would drop it further. Recommend reviewing pending Engineering requests via Smart Leave Guard.`, actions:[{label:'Open Guard',to:'/guard'}]}
+      if(low.availability<70) return { role:'ai', text:`Yes — ${low.dept} at ${low.availability}% availability. Approving overlapping leave would drop it further. Recommend reviewing pending requests with HR.`, actions:[{label:'Review time off',to:'/time-off'}]}
       return { role:'ai', text:`No critical staffing concerns today. Workforce is ${m.availability}% available. Monitor Engineering closely.`, actions:[{label:'View heatmap',to:'/pulse'}]}
     }
     if(qq.includes('unusual')){

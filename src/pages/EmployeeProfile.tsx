@@ -3,6 +3,7 @@ import { useAuth, getMyEmployee } from '../lib/store'
 import { useState, useMemo, useEffect } from 'react'
 import { ArrowLeft, Mail, Phone, MapPin, ShieldAlert, Pencil, Plus, Trash2, Building2, Users, CalendarCheck, Award, FileText, TrendingUp, Flame, X, Check, Star, Lock, Shield } from 'lucide-react'
 import { formatCurrency } from '../lib/utils'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 function Tenure({joinDate}:{joinDate:string}){
   const start=new Date(joinDate); const now=new Date(); const diffMs=now.getTime()-start.getTime()
@@ -45,7 +46,7 @@ export default function EmployeeProfile(){
 
   // header edit
   const [editingHeader,setEditingHeader]=useState(false)
-  const [hName,setHName]=useState(''); const [hEmail,setHEmail]=useState(''); const [hPhone,setHPhone]=useState(''); const [hCompany,setHCompany]=useState(''); const [hDept,setHDept]=useState(''); const [hManager,setHManager]=useState(''); const [hLocation,setHLocation]=useState(''); const [avatarUrl,setAvatarUrl]=useState(''); const [showAvatar,setShowAvatar]=useState(false)
+  const [hName,setHName]=useState(''); const [hEmail,setHEmail]=useState(''); const [hPhone,setHPhone]=useState(''); const [hCompany,setHCompany]=useState(''); const [hDept,setHDept]=useState(''); const [hManager,setHManager]=useState(''); const [hLocation,setHLocation]=useState('')
   // resume inline
   const [editingAbout,setEditingAbout]=useState(false); const [tmpAbout,setTmpAbout]=useState('')
   const [editingLove,setEditingLove]=useState(false); const [tmpLove,setTmpLove]=useState('')
@@ -128,7 +129,7 @@ export default function EmployeeProfile(){
         <div className="px-6 py-6">
           {editingHeader ? (
             <div className="grid md:grid-cols-[160px_1fr_1fr] gap-6">
-              <div className="flex flex-col items-center gap-2"><img src={avatarUrl||emp.avatar} className="w-24 h-24 rounded-full object-cover border border-line"/><input value={avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="Avatar URL" className="w-full px-2 py-1.5 rounded-lg border border-line bg-paper text-[11px]"/><button onClick={()=>{ if(avatarUrl) updateEmployee(emp.id,{avatar:avatarUrl}); setEditingHeader(false)}} className="text-[11px] font-medium px-3 py-1 rounded-lg bg-ink text-white">Save avatar</button></div>
+              <div className="flex flex-col items-center gap-2"><EmployeeAvatar employee={emp} className="w-24 h-24"/></div>
               <div className="space-y-3">
                 <div><label className="text-[11px] font-medium">My Name</label><input value={hName} onChange={e=>setHName(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px]"/></div>
                 <div><label className="text-[11px] font-medium">Login ID</label><div className="mt-1 px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px] font-mono text-muted">{emp.loginId}</div></div>
@@ -144,7 +145,7 @@ export default function EmployeeProfile(){
             </div>
           ) : (
             <div className="grid md:grid-cols-[140px_1fr_1fr] gap-6">
-              <div className="relative w-24 h-24 mx-auto md:mx-0"><img src={emp.avatar} className="w-24 h-24 rounded-full object-cover border border-line bg-paper"/>{canEditPrivate && <button onClick={()=>setShowAvatar(v=>!v)} className="absolute bottom-1 right-1 w-7 h-7 rounded-full bg-white border border-line shadow-sm grid place-items-center hover:bg-paper"><Pencil className="w-3.5 h-3.5"/></button>}{showAvatar && canEditPrivate && (<div className="absolute top-24 left-0 z-10 bg-white border border-line rounded-[10px] p-3 shadow-card w-64"><div className="text-[11px] font-medium">Update avatar</div><input value={avatarUrl} onChange={e=>setAvatarUrl(e.target.value)} placeholder="https://..." className="mt-2 w-full px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/><div className="mt-2 flex gap-2"><button onClick={()=>{ if(avatarUrl){ updateEmployee(emp.id,{avatar:avatarUrl}); setShowAvatar(false); setAvatarUrl('') } }} className="px-3 py-1.5 rounded-lg bg-ink text-white text-[11px] font-medium">Save</button><button onClick={()=>setShowAvatar(false)} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[11px]">Cancel</button></div></div>)}</div>
+              <div className="relative w-24 h-24 mx-auto md:mx-0"><EmployeeAvatar employee={emp} className="w-24 h-24"/></div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2"><h1 className="text-[22px] font-semibold tracking-tight leading-none">{emp.name}</h1>{canEditPrivate && <button onClick={startHeaderEdit} className="p-1 rounded-md hover:bg-paper border border-transparent hover:border-line"><Pencil className="w-3.5 h-3.5 text-muted"/></button>}<span className={`px-2 py-1 rounded-md text-[11px] font-medium border ${statusBadge}`}>{status}</span></div>
                 <div className="space-y-1.5 text-[12px]"><div className="flex"><span className="w-20 text-muted">Login ID</span><span className="font-mono font-medium">{emp.loginId}</span></div><div className="flex"><span className="w-20 text-muted">Email</span><span className="font-medium">{emp.email}</span></div><div className="flex"><span className="w-20 text-muted">Mobile</span><span className="font-medium">{emp.phone}</span></div></div>

@@ -9,7 +9,6 @@ import Attendance from './pages/Attendance'
 import Leave from './pages/Leave'
 import Payroll from './pages/Payroll'
 import Pulse from './pages/Pulse'
-import Guard from './pages/Guard'
 import Ai from './pages/Ai'
 import Settings from './pages/Settings'
 import { AdminDashboard, EmployeeDashboard } from './pages/Dashboard'
@@ -42,7 +41,6 @@ export default function App(){
           <Route path="/time-off" element={<Protected><Leave/></Protected>}/>
           <Route path="/payroll" element={<Protected><Payroll/></Protected>}/>
           <Route path="/pulse" element={<Protected><Pulse/></Protected>}/>
-          <Route path="/guard" element={<Protected><Guard/></Protected>}/>
           <Route path="/ai" element={<Protected><Ai/></Protected>}/>
           <Route path="/settings" element={<Protected><Settings/></Protected>}/>
           <Route path="*" element={<Navigate to="/employees" replace/>}/>

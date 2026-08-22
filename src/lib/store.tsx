@@ -238,7 +238,7 @@ export function AuthProvider({children}:{children:ReactNode}){
       email:payload.email,
       department:payload.department,
       role:payload.role,
-      avatar:`https://i.pravatar.cc/150?img=${Math.floor(Math.random()*70)+1}`,
+      avatar:'',
       salary,
       joinDate:new Date().toISOString().slice(0,10),
       phone:payload.phone||`+91 ${Math.floor(9000000000+Math.random()*999999999)}`,

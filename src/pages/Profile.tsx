@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../lib/store'
 import { formatCurrency } from '../lib/utils'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 type Tab='resume'|'private'|'salary'|'security'
 
@@ -41,7 +42,7 @@ export default function Profile(){
       </div>
       <div className="bg-white border border-line rounded-xl overflow-hidden">
         <div className="p-5 flex flex-wrap gap-4 items-center border-b border-line">
-          <img src={employee.avatar} className="w-16 h-16 rounded-full object-cover"/>
+          <EmployeeAvatar employee={employee} className="w-16 h-16"/>
           <div className="flex-1"><div className="text-[18px] font-semibold">{employee.name}</div><div className="text-[12px] text-muted">{employee.role} · {employee.department}</div><div className="text-[11px] text-muted mt-1">{employee.id} · {employee.email}</div></div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-[12px]"><div><span className="text-muted">Manager</span><div className="font-medium">{employee.manager||'—'}</div></div><div><span className="text-muted">Location</span><div className="font-medium">{employee.location||'—'}</div></div></div>
         </div>

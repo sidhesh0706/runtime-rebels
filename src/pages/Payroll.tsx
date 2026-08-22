@@ -1,6 +1,7 @@
 import { useAuth } from '../lib/store'
 import { formatCurrency } from '../lib/utils'
 import { useState } from 'react'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 export default function Payroll(){
   const { employees, user, data, updatePayrollWage } = useAuth()
@@ -37,7 +38,7 @@ export default function Payroll(){
             return (
               <div key={emp.id} className="px-4 py-4 flex flex-wrap lg:grid lg:grid-cols-[1.6fr_0.9fr_0.9fr_0.9fr_1fr_80px] gap-3 lg:gap-0 items-center">
                 <div className="flex items-center gap-3 min-w-[180px] flex-1 lg:flex-none">
-                  <img src={emp.avatar} className="w-8 h-8 rounded-full"/>
+                  <EmployeeAvatar employee={emp} className="w-8 h-8"/>
                   <div>
                     <div className="text-[13px] font-medium leading-none">{emp.name}</div>
                     <div className="text-[11px] text-muted">{emp.department} • {p.month}</div>

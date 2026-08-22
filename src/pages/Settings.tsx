@@ -18,7 +18,7 @@ export default function Settings(){
       </div>
       <div className="bg-white border border-line rounded-xl p-5">
         <h3 className="text-[13px] font-semibold">About Dayflow</h3>
-        <p className="text-[12px] text-muted mt-2 leading-relaxed">Dayflow is an intelligent workforce command center. Every metric is derived from the seeded attendance and leave data in this prototype. Smart Leave Guard, Workforce Pulse, Heatmap and Dayflow AI are included in the demo.</p>
+        <p className="text-[12px] text-muted mt-2 leading-relaxed">Dayflow is an intelligent workforce command center. Every metric is derived from the PostgreSQL-backed attendance and leave data. Workforce Pulse, Heatmap and Dayflow AI are included in the demo.</p>
       </div>
     </div>
   )

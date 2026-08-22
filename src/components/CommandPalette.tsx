@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, Users, CalendarCheck, CalendarDays } from 'lucide-react'
 import { useAuth } from '../lib/store'
+import { EmployeeAvatar } from './EmployeeAvatar'
 
 export default function CommandPalette(){
   const [open,setOpen]=useState(false)
@@ -29,7 +30,7 @@ export default function CommandPalette(){
           <div className="text-[11px] tracking-[0.06em] font-medium text-muted uppercase px-2 py-1">Employees</div>
           {filtered.map(e=>(
             <button key={e.id} onClick={()=>{ setOpen(false); nav(`/employees/${e.id}`)}} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-paper">
-              <img src={e.avatar} className="w-7 h-7 rounded-full"/><span className="text-[13px] font-medium">{e.name}</span><span className="text-[11px] text-muted">{e.loginId} • {e.department}</span>
+              <EmployeeAvatar employee={e} className="w-7 h-7"/><span className="text-[13px] font-medium">{e.name}</span><span className="text-[11px] text-muted">{e.loginId} • {e.department}</span>
             </button>
           ))}
           {filtered.length===0 && q && <div className="text-[12px] text-muted px-3 py-4 text-center">No match</div>}
