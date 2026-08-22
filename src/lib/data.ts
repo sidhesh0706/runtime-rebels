@@ -1,6 +1,6 @@
-export type Role = 'admin' | 'employee'
+export type Role = 'admin' | 'hr' | 'employee'
 export type Dept = 'Engineering' | 'Design' | 'Marketing' | 'Sales' | 'Human Resources' | 'Finance'
-export type LeaveType = 'Paid' | 'Sick' | 'Unpaid' | 'Casual'
+export type LeaveType = 'Paid' | 'Sick' | 'Unpaid'
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected'
 export type AttStatus = 'Present' | 'Absent' | 'Half-day' | 'Leave' | 'Late'
 
@@ -15,6 +15,13 @@ export interface Employee {
   joinDate: string
   phone: string
   status: 'Active' | 'On Leave' | 'Absent'
+  manager?: string
+  location?: string
+  address?: string
+  about?: string
+  interests?: string
+  skills?: string[]
+  certifications?: string[]
 }
 
 export interface Attendance {
@@ -25,6 +32,7 @@ export interface Attendance {
   checkIn?: string
   checkOut?: string
   hours?: number
+  extraHours?: number
 }
 
 export interface LeaveRequest {
@@ -38,6 +46,9 @@ export interface LeaveRequest {
   status: LeaveStatus
   createdAt: string
   reviewedBy?: string
+  reviewedAt?: string
+  reviewComment?: string
+  attachmentName?: string
 }
 
 export interface PayrollRecord {
@@ -47,6 +58,16 @@ export interface PayrollRecord {
   deductions: number
   net: number
   month: string
+  hra?: number
+  standardAllowance?: number
+  performanceBonus?: number
+  lta?: number
+  fixedAllowance?: number
+  pfEmployee?: number
+  pfEmployer?: number
+  professionalTax?: number
+  payableDays?: number
+  workingDays?: number
 }
 
 export const DEPARTMENTS: Dept[] = ['Engineering','Design','Marketing','Sales','Human Resources','Finance']
@@ -77,6 +98,13 @@ function seededEmployees(): Employee[] {
     joinDate: new Date(2020 + Math.floor(Math.random()*4), Math.floor(Math.random()*12), Math.floor(Math.random()*28)+1).toISOString().slice(0,10),
     phone: `+91 ${Math.floor(9000000000 + Math.random()*999999999)}`,
     status: 'Active',
+    manager: i < 8 ? 'Vikram Rao' : 'Aarav Sharma',
+    location: i % 3 === 0 ? 'Bengaluru' : 'Hybrid',
+    address: 'Bengaluru, Karnataka',
+    about: 'Focused on building thoughtful systems and helping the team do its best work.',
+    interests: 'Learning, team culture, and solving meaningful problems.',
+    skills: i % 2 ? ['Collaboration','Planning'] : ['Leadership','Problem solving'],
+    certifications: i % 3 === 0 ? ['Workplace Essentials'] : [],
   }))
 }
 
@@ -117,7 +145,7 @@ export function generateLeaves(employees: Employee[]): LeaveRequest[] {
   const leaves: LeaveRequest[] = [
     { id:'LV1001', employeeId: employees[2].id, type:'Paid', startDate:todayStr(1), endDate:todayStr(3), days:3, reason:'Family function', status:'Pending', createdAt: todayStr(-1) },
     { id:'LV1002', employeeId: employees[5].id, type:'Sick', startDate:todayStr(0), endDate:todayStr(1), days:2, reason:'Fever', status:'Pending', createdAt: todayStr(-1) },
-    { id:'LV1003', employeeId: employees[8].id, type:'Casual', startDate:todayStr(2), endDate:todayStr(2), days:1, reason:'Personal work', status:'Pending', createdAt: todayStr(0) },
+    { id:'LV1003', employeeId: employees[8].id, type:'Paid', startDate:todayStr(2), endDate:todayStr(2), days:1, reason:'Personal work', status:'Pending', createdAt: todayStr(0) },
     { id:'LV1004', employeeId: employees[0].id, type:'Paid', startDate:todayStr(-5), endDate:todayStr(-3), days:3, reason:'Vacation', status:'Approved', createdAt: todayStr(-7) },
     { id:'LV1005', employeeId: employees[12].id, type:'Paid', startDate:todayStr(-2), endDate:todayStr(-1), days:2, reason:'Travel', status:'Approved', createdAt: todayStr(-4) },
     { id:'LV1006', employeeId: employees[15].id, type:'Unpaid', startDate:todayStr(5), endDate:todayStr(7), days:3, reason:'Extended leave', status:'Pending', createdAt: todayStr(0) },
@@ -126,13 +154,27 @@ export function generateLeaves(employees: Employee[]): LeaveRequest[] {
     // overlapping engineering leaves to trigger Smart Guard
     { id:'LV1009', employeeId: employees[6].id, type:'Paid', startDate:todayStr(1), endDate:todayStr(2), days:2, reason:'Conference', status:'Approved', createdAt: todayStr(-2) },
     { id:'LV1010', employeeId: employees[7].id, type:'Paid', startDate:todayStr(1), endDate:todayStr(3), days:3, reason:'Vacation', status:'Approved', createdAt: todayStr(-3) },
-    { id:'LV1011', employeeId: employees[21].id, type:'Casual', startDate:todayStr(1), endDate:todayStr(1), days:1, reason:'Personal', status:'Approved', createdAt: todayStr(-1) },
+    { id:'LV1011', employeeId: employees[21].id, type:'Paid', startDate:todayStr(1), endDate:todayStr(1), days:1, reason:'Personal', status:'Approved', createdAt: todayStr(-1) },
   ]
   return leaves
 }
 
+export function calculatePayroll(employeeId:string, wage:number): PayrollRecord {
+  const base=Math.round(wage*.5)
+  const hra=Math.round(base*.5)
+  const standardAllowance=4167
+  const performanceBonus=Math.round(wage*.0833)
+  const lta=Math.round(wage*.0833)
+  const fixedAllowance=Math.max(0,wage-base-hra-standardAllowance-performanceBonus-lta)
+  const pfEmployee=Math.round(base*.12)
+  const pfEmployer=Math.round(base*.12)
+  const professionalTax=200
+  const deductions=pfEmployee+professionalTax
+  return { employeeId, base, bonus:performanceBonus, deductions, net:wage-deductions, month:new Date().toISOString().slice(0,7), hra, standardAllowance, performanceBonus, lta, fixedAllowance, pfEmployee, pfEmployer, professionalTax, payableDays:22, workingDays:22 }
+}
+
 export function generatePayroll(employees: Employee[]): PayrollRecord[] {
-  return employees.map(e=>({ employeeId:e.id, base:e.salary, bonus: Math.floor(e.salary*0.08), deductions: Math.floor(e.salary*0.12), net: Math.floor(e.salary*0.96), month: new Date().toISOString().slice(0,7) }))
+  return employees.map(e=>calculatePayroll(e.id,e.salary))
 }
 
 // store helpers

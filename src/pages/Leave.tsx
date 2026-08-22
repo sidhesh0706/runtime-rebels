@@ -3,22 +3,31 @@ import { useAuth } from '../lib/store'
 import { Link } from 'react-router-dom'
 
 export default function Leave(){
-  const { employees, leaves, updateLeaves, user } = useAuth()
-  const isAdmin=user?.role==='admin'
+  const { employees, leaves, updateLeaves, reviewLeave, user } = useAuth()
+  const isAdmin=user?.role==='admin'||user?.role==='hr'
   const me = employees.find(e=>e.email===user?.email) || employees[0]
   const [type,setType]=useState('Paid')
   const [start,setStart]=useState(new Date().toISOString().slice(0,10))
   const [end,setEnd]=useState(new Date().toISOString().slice(0,10))
   const [reason,setReason]=useState('')
+  const [attachment,setAttachment]=useState('')
+  const [error,setError]=useState('')
+  const [comments,setComments]=useState<Record<string,string>>({})
   const days = Math.max(1, Math.ceil((new Date(end).getTime()-new Date(start).getTime())/86400000)+1)
 
   const myLeaves = leaves.filter(l=> l.employeeId===me.id)
   const allPending = leaves.filter(l=>l.status==='Pending')
 
   function submit(){
+    setError('')
+    if(!reason.trim()){setError('Add remarks for the request');return}
+    if(end<start){setError('End date must be on or after start date');return}
+    if(type==='Sick'&&!attachment){setError('Attach a sick-leave certificate');return}
+    if(myLeaves.some(l=>l.status!=='Rejected'&&!(l.endDate<start||l.startDate>end))){setError('This request overlaps an existing leave');return}
     const id='LV'+Date.now()
-    updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
+    updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, attachmentName:attachment||undefined, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
     setReason('')
+    setAttachment('')
   }
 
   function guardFor(leaveId:string){
@@ -49,7 +58,7 @@ export default function Leave(){
             <div>
               <label className="text-[11px] font-medium text-ink">Leave type</label>
               <select value={type} onChange={e=>setType(e.target.value)} className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-paper text-[13px]">
-                <option>Paid</option><option>Sick</option><option>Unpaid</option><option>Casual</option>
+                <option>Paid</option><option>Sick</option><option>Unpaid</option>
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -63,6 +72,8 @@ export default function Leave(){
               <label className="text-[11px] font-medium">Reason</label>
               <textarea value={reason} onChange={e=>setReason(e.target.value)} placeholder="Brief reason…" className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-paper text-[13px] min-h-[80px]"/>
             </div>
+            {type==='Sick'&&<label className="block rounded-lg border border-dashed border-line bg-paper px-3 py-2.5 text-[11px] text-muted cursor-pointer"><span>{attachment||'Attach sick-leave certificate'}</span><input type="file" accept="image/*,.pdf" className="hidden" onChange={e=>setAttachment(e.target.files?.[0]?.name||'')}/></label>}
+            {error&&<div className="text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{error}</div>}
             <button onClick={submit} className="w-full py-2 rounded-lg bg-accent text-white text-[13px] font-medium hover:bg-[#155a3d]">Submit request</button>
             <p className="text-[11px] text-muted text-center leading-relaxed">Reviewed by HR. Guard checks for staffing conflicts.</p>
           </div>
@@ -77,7 +88,8 @@ export default function Leave(){
                   <div key={l.id} className="border border-line rounded-lg px-3 py-3 flex items-center justify-between">
                     <div>
                       <div className="text-[12px] font-medium">{l.type} • {l.days} days</div>
-                      <div className="text-[11px] text-muted">{l.startDate} → {l.endDate} • {l.reason}</div>
+                      <div className="text-[11px] text-muted">{l.startDate} → {l.endDate} • {l.reason}{l.attachmentName?` • ${l.attachmentName}`:''}</div>
+                      {l.reviewComment&&<div className="text-[11px] text-muted mt-1">HR: {l.reviewComment}</div>}
                     </div>
                     <span className={`px-2 py-1 rounded-md text-[11px] font-medium border ${l.status==='Pending'?'bg-[#fef7e7] border-[#f2e0a6] text-[#8a6d00]': l.status==='Approved'?'bg-accent-soft border-[#d6e8db] text-accent':'bg-[#fdf2f2] border-[#f0d6d6] text-[#991b1b]'}`}>{l.status}</span>
                   </div>
@@ -122,8 +134,9 @@ export default function Leave(){
                       </div>
 
                       <div className="mt-3 flex gap-2">
-                        <button onClick={()=>updateLeaves(prev=>prev.map(x=>x.id===l.id? {...x, status:'Approved'}:x))} className="px-3 py-1.5 rounded-lg bg-accent text-white text-[12px] font-medium">Approve</button>
-                        <button onClick={()=>updateLeaves(prev=>prev.map(x=>x.id===l.id? {...x, status:'Rejected'}:x))} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium">Reject</button>
+                        <input value={comments[l.id]||''} onChange={e=>setComments({...comments,[l.id]:e.target.value})} placeholder="Decision comment" className="flex-1 min-w-[140px] px-3 py-1.5 rounded-lg border border-line bg-paper text-[11px]"/>
+                        <button onClick={()=>reviewLeave(l.id,'Approved',comments[l.id]||'Approved by HR')} className="px-3 py-1.5 rounded-lg bg-accent text-white text-[12px] font-medium">Approve</button>
+                        <button disabled={!comments[l.id]?.trim()} onClick={()=>reviewLeave(l.id,'Rejected',comments[l.id])} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium disabled:opacity-40">Reject</button>
                         <button className="ml-auto px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium">Review team</button>
                       </div>
                     </div>

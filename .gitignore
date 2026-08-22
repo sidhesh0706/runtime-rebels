@@ -4,6 +4,8 @@ node_modules/
 # Build output
 dist/
 dist-ssr/
+.next/
+out/
 *.local
 
 # Environment files and secrets
@@ -25,8 +27,13 @@ lerna-debug.log*
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# Deployment and temporary files
+.vercel/
+tmp/

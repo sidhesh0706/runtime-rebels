@@ -7,9 +7,11 @@ Dayflow is a focused human-resources management interface for tracking workforce
 - Admin and employee authentication flows
 - Role-based dashboard views
 - Employee directory with search, filters, and employee details
-- Attendance overview plus employee check-in and check-out simulation
-- Leave requests with approval and rejection workflows
-- Payroll summaries and salary breakdowns
+- HR-provisioned employees with generated login IDs and temporary passwords
+- Profile tabs for resume, private information, salary, and security
+- Attendance check-in/check-out with calculated work and extra hours
+- Leave requests with overlap validation, sick-note attachments, comments, and approval synchronization
+- Payroll summaries with board-defined salary components, PF, and professional tax
 - Workforce Pulse metrics and department availability
 - Smart Leave Guard for overlapping leave checks
 - Deterministic Dayflow AI responses for common HR questions
@@ -24,7 +26,7 @@ Dayflow is a focused human-resources management interface for tracking workforce
 - Recharts and Lucide React
 - PostgreSQL schema included in `schema.sql` for the planned data model
 
-> Current prototype note: the running frontend seeds demo data and persists changes in browser `localStorage`. It does not currently connect to PostgreSQL or expose a backend API. `schema.sql` documents the intended PostgreSQL tables, views, and Smart Leave Guard query.
+> Current prototype note: the running frontend seeds demo data and persists changes in browser `localStorage`. It does not currently connect to PostgreSQL or expose a backend API. `schema.sql` documents the intended PostgreSQL tables, views, and Smart Leave Guard query. Production authentication, email delivery, audit persistence, and binary file storage remain backend integration work.
 
 ## Setup
 
@@ -85,6 +87,7 @@ src/
   components/    Shared application layout
   lib/            Seed data, localStorage store, and formatting helpers
   pages/          Auth, dashboard, attendance, leave, payroll, AI, and settings views
+                  plus profile and security surfaces
   App.tsx        Router and protected routes
   index.css      Global styles and Tailwind layers
 schema.sql       PostgreSQL tables, views, and Smart Leave Guard query

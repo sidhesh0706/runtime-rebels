@@ -1,7 +1,7 @@
 import { useAuth } from '../lib/store'
 
 export default function Guard(){
-  const { leaves, employees } = useAuth()
+  const { leaves, employees, reviewLeave } = useAuth()
   const pending=leaves.filter(l=>l.status==='Pending')
   return (
     <div className="space-y-5">
@@ -55,8 +55,8 @@ export default function Guard(){
                     </div>
                   )}
                   <div className="mt-4 flex gap-2">
-                    <button className="px-3.5 py-2 rounded-lg bg-ink text-white text-[12px] font-medium hover:bg-black">Approve</button>
-                    <button className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium">Reject</button>
+                    <button onClick={()=>reviewLeave(l.id,'Approved','Approved after staffing review')} className="px-3.5 py-2 rounded-lg bg-ink text-white text-[12px] font-medium hover:bg-black">Approve</button>
+                    <button onClick={()=>reviewLeave(l.id,'Rejected','Rejected due to staffing coverage')} className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium">Reject</button>
                     <button className="px-3.5 py-2 rounded-lg border border-line bg-white text-[12px] font-medium ml-auto">Review team</button>
                   </div>
                 </div>

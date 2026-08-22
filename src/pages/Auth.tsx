@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../lib/store'
+import { Eye, EyeOff, Upload } from 'lucide-react'
 
 const DEMO_ADMIN_PASSWORD = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || ''
 const DEMO_EMPLOYEE_PASSWORD = import.meta.env.VITE_DEMO_EMPLOYEE_PASSWORD || ''
@@ -10,6 +11,7 @@ export function Login(){
   const nav=useNavigate()
   const [email,setEmail]=useState('admin@dayflow.co')
   const [pass,setPass]=useState(DEMO_ADMIN_PASSWORD)
+  const [showPass,setShowPass]=useState(false)
   const [err,setErr]=useState('')
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_0.95fr] bg-paper">
@@ -46,12 +48,12 @@ export function Login(){
             </div>
             <form onSubmit={e=>{e.preventDefault(); const ok=login(email,pass); if(!ok) setErr('Invalid credentials'); else nav('/')}} className="mt-5 space-y-3">
               <div>
-                <label className="text-[11px] font-medium">Work email</label>
-                <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.co" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-line bg-paper outline-none text-[13px]" />
+                <label className="text-[11px] font-medium">Login ID or work email</label>
+                <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="OIARSH20200001 or you@company.co" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-line bg-paper outline-none text-[13px]" />
               </div>
               <div>
                 <label className="text-[11px] font-medium">Password</label>
-                <input type="password" value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-line bg-paper outline-none text-[13px]" />
+                <div className="relative mt-1"><input type={showPass?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2.5 pr-10 rounded-lg border border-line bg-paper outline-none text-[13px]" /><button type="button" onClick={()=>setShowPass(v=>!v)} aria-label={showPass?'Hide password':'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">{showPass?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button></div>
               </div>
               {err && <div className="text-[12px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{err}</div>}
               <button className="w-full py-2.5 rounded-lg bg-ink text-white text-[13px] font-medium hover:bg-black">Sign in</button>
@@ -71,10 +73,14 @@ export function Login(){
 export function Signup(){
   const { signup } = useAuth()
   const nav=useNavigate()
+  const [company,setCompany]=useState('')
   const [name,setName]=useState('')
   const [email,setEmail]=useState('')
+  const [phone,setPhone]=useState('')
   const [pass,setPass]=useState('')
-  const [role,setRole]=useState<'admin'|'employee'>('employee')
+  const [confirm,setConfirm]=useState('')
+  const [showPass,setShowPass]=useState(false)
+  const [logo,setLogo]=useState('')
   const [err,setErr]=useState('')
   return (
     <div className="min-h-screen grid place-items-center bg-paper p-6">
@@ -85,14 +91,15 @@ export function Signup(){
         </div>
         <h2 className="text-[18px] font-semibold tracking-tight mt-5">Create your workspace</h2>
         <p className="text-[13px] text-muted">Start in minutes. No credit card required.</p>
-        <form onSubmit={e=>{e.preventDefault(); if(!name||!email||!pass){ setErr('Fill all fields'); return} const ok=signup(name,email,pass,role); if(!ok) setErr('Email already exists'); else nav('/')}} className="mt-5 space-y-3">
+        <form onSubmit={e=>{e.preventDefault(); if(!company||!name||!email||!phone||!pass||!confirm){ setErr('Fill all fields'); return} if(pass.length<8){setErr('Use at least 8 characters');return} if(pass!==confirm){setErr('Passwords do not match');return} const ok=signup(company,name,email,phone,pass); if(!ok) setErr('Email already exists'); else nav('/')}} className="mt-5 space-y-3">
+          <input placeholder="Company name" value={company} onChange={e=>setCompany(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
           <input placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
-          <input placeholder="Work email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
-          <input placeholder="Password (min 6)" type="password" value={pass} onChange={e=>setPass(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
-          <div className="flex gap-2">
-            <button type="button" onClick={()=>setRole('employee')} className={`flex-1 py-2 rounded-lg border text-[12px] font-medium ${role==='employee'?'bg-ink text-white border-ink':'bg-white border-line'}`}>Employee</button>
-            <button type="button" onClick={()=>setRole('admin')} className={`flex-1 py-2 rounded-lg border text-[12px] font-medium ${role==='admin'?'bg-ink text-white border-ink':'bg-white border-line'}`}>HR / Admin</button>
-          </div>
+          <input placeholder="Work email" type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
+          <input placeholder="Phone" value={phone} onChange={e=>setPhone(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
+          <div className="relative"><input placeholder="Password (min 8)" type={showPass?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)} className="w-full px-3 py-2.5 pr-10 rounded-lg border border-line bg-paper text-[13px]" /><button type="button" onClick={()=>setShowPass(v=>!v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">{showPass?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button></div>
+          <input placeholder="Confirm password" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
+          <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-line bg-paper text-[12px] text-muted cursor-pointer"><Upload className="w-4 h-4"/><span>{logo||'Upload company logo'}</span><input type="file" accept="image/*" className="hidden" onChange={e=>setLogo(e.target.files?.[0]?.name||'')}/></label>
+          <p className="text-[11px] text-muted">This creates the company administrator. Employees are provisioned by HR with generated credentials.</p>
           {err && <div className="text-[12px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{err}</div>}
           <button className="w-full py-2.5 rounded-lg bg-ink text-white text-[13px] font-medium">Create account</button>
         </form>

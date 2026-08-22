@@ -51,7 +51,7 @@ export default function Layout({children}:{children:React.ReactNode}){
           <div>
             <div className="px-2 mb-2 text-[10px] tracking-[0.14em] text-white/40 font-medium uppercase">Insights</div>
             <div className="space-y-0.5">
-              {insights.map(i=>(
+              {insights.filter(i=>user.role!=='employee'||i.to==='/ai').map(i=>(
                 <NavLink key={i.to} to={i.to} className={({isActive})=>`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] transition ${isActive?'bg-[#232628] text-white':'text-white/65 hover:text-white hover:bg-white/[0.06]'}`}>
                   <i.icon className="w-[16px] h-[16px] opacity-80"/>{i.label}
                 </NavLink>
@@ -60,7 +60,7 @@ export default function Layout({children}:{children:React.ReactNode}){
           </div>
           <div className="pt-3 border-t border-white/[0.07]">
             <div className="space-y-0.5">
-              <NavLink to="/settings" className={({isActive})=>`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] ${isActive?'bg-[#232628] text-white':'text-white/65 hover:text-white hover:bg-white/[0.06]'}`}><Settings className="w-[16px] h-[16px] opacity-80"/>Settings</NavLink>
+              {user.role!=='employee'&&<NavLink to="/settings" className={({isActive})=>`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] ${isActive?'bg-[#232628] text-white':'text-white/65 hover:text-white hover:bg-white/[0.06]'}`}><Settings className="w-[16px] h-[16px] opacity-80"/>Settings</NavLink>}
               <a href="#" className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] text-white/65 hover:text-white hover:bg-white/[0.06]"><HelpCircle className="w-[16px] h-[16px] opacity-80"/>Help</a>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function Layout({children}:{children:React.ReactNode}){
           <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.04] transition">
             <img src={user.avatar} className="w-8 h-8 rounded-full object-cover"/>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-medium leading-none truncate">{user.name}</div>
+              <NavLink to="/profile" className="text-[13px] font-medium leading-none truncate hover:underline">{user.name}</NavLink>
               <div className="text-[11px] text-white/50 capitalize">{user.role} • {user.email.split('@')[0]}</div>
             </div>
             <button onClick={()=>{logout(); nav('/login')}} className="p-1.5 rounded-md hover:bg-white/10 text-white/60 hover:text-white"><LogOut className="w-4 h-4"/></button>

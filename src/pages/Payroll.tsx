@@ -1,11 +1,16 @@
 import { useAuth } from '../lib/store'
 import { formatCurrency } from '../lib/utils'
+import { useState } from 'react'
 
 export default function Payroll(){
-  const { employees, user, data } = useAuth()
-  const isAdmin=user?.role==='admin'
+  const { employees, user, data, updatePayrollWage } = useAuth()
+  const isAdmin=user?.role==='admin'||user?.role==='hr'
   const me = employees.find(e=>e.email===user?.email) || employees[0]
   const list = isAdmin? employees : [me]
+  const [selected,setSelected]=useState(me.id)
+  const [wage,setWage]=useState(me.salary)
+  const selectedEmployee=employees.find(e=>e.id===selected)||me
+  const selectedPayroll=data.payroll.find(p=>p.employeeId===selectedEmployee.id)
   return (
     <div className="space-y-5">
       <div>
@@ -29,16 +34,23 @@ export default function Payroll(){
                     <div className="text-[11px] text-muted">{emp.department} • {p.month}</div>
                   </div>
                 </div>
-                <div className="text-[13px] tabular-nums">{formatCurrency(p.base)}</div>
+                <div className="text-[13px] tabular-nums">{formatCurrency(emp.salary)}</div>
                 <div className="text-[13px] tabular-nums text-accent">+{formatCurrency(p.bonus)}</div>
                 <div className="text-[13px] tabular-nums text-[#8b3a3a]">-{formatCurrency(p.deductions)}</div>
                 <div className="text-[13px] font-semibold tabular-nums">{formatCurrency(p.net)}</div>
-                <div className="ml-auto lg:ml-0">{isAdmin && <button className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium hover:bg-paper">Edit</button>}</div>
+                <div className="ml-auto lg:ml-0"><button onClick={()=>{setSelected(emp.id);setWage(emp.salary)}} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium hover:bg-paper">{isAdmin?'Edit':'View'}</button></div>
               </div>
             )
           })}
         </div>
       </div>
+      {selectedPayroll&&<div className="bg-white border border-line rounded-xl p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="text-[14px] font-semibold">{selectedEmployee.name} · Salary structure</h2><p className="text-[11px] text-muted mt-1">{isAdmin?'Editable wage with automatically calculated components':'Read-only earnings and deductions'}</p></div>{isAdmin&&<div className="flex gap-2"><input type="number" min="0" value={wage} onChange={e=>setWage(Number(e.target.value))} className="w-32 px-3 py-2 rounded-lg border border-line bg-paper text-[12px]"/><button onClick={()=>updatePayrollWage(selectedEmployee.id,wage)} className="px-3 py-2 rounded-lg bg-ink text-white text-[12px] font-medium">Recalculate</button></div>}</div>
+        <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-5 gap-3">{[
+          ['Basic salary',selectedPayroll.base],['HRA',selectedPayroll.hra],['Standard allowance',selectedPayroll.standardAllowance],['Performance bonus',selectedPayroll.performanceBonus],['Leave travel allowance',selectedPayroll.lta],['Fixed allowance',selectedPayroll.fixedAllowance],['Employee PF',selectedPayroll.pfEmployee],['Employer PF',selectedPayroll.pfEmployer],['Professional tax',selectedPayroll.professionalTax],['Net pay',selectedPayroll.net]
+        ].map(([label,value])=><div key={String(label)} className="rounded-lg border border-line bg-paper p-3"><div className="text-[10px] text-muted uppercase tracking-[0.05em]">{label}</div><div className="text-[13px] font-semibold mt-1 tabular-nums">{formatCurrency(Number(value||0))}</div></div>)}</div>
+        <div className="mt-4 text-[11px] text-muted">Board defaults: Basic 50% of wage · HRA 50% of Basic · PF 12% of Basic · Professional Tax ₹200 · Components never exceed wage.</div>
+      </div>}
       <div className="text-[11px] text-muted">Payroll data is read-only for employees. Admin can update salary structure.</div>
     </div>
   )
