@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Premium enterprise typography */
+* { font-family: Inter, system-ui, -apple-system, sans-serif; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { background: #faf9f7; color: #111214; }
+
+h1,h2,h3 { letter-spacing: -0.02em; }
+
+/* subtle scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #e7e2dc; border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* focus */
+*:focus-visible { outline: 2px solid #1a6b4a; outline-offset: 2px; }
+
+/* remove decorative glass */
+.glass { backdrop-filter: none; }
