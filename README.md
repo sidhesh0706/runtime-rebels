@@ -85,11 +85,11 @@ The API creates the required tables and seeds the demo workspace automatically. 
 | HR Administrator | `admin@dayflow.co` | `DFAS1001` | `Admin@123` |
 | Employee | `isha@dayflow.co` | `DFIP1002` | `Employee@123` |
 
-> These credentials are seed data for local judging and demonstration only. Change them before any real deployment.
+> These credentials are seed data for the local demo environment only. Change them before any real deployment.
 
-## Recommended judge walkthrough
+## End-to-end workflow
 
-The following flow demonstrates the shared database and role separation in a few minutes:
+DayFlow connects employee actions and HR operations through one shared workflow:
 
 1. Sign in as **Isha Patel** using the employee account.
 2. Check in from the employee dashboard and review the updated attendance state.
@@ -177,7 +177,7 @@ runtime-rebels/
 └── vite.config.ts          # Vite setup and local API proxy
 ```
 
-## Verification before submission
+## Verification
 
 ```powershell
 npm run build
