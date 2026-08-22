@@ -23,6 +23,96 @@ CREATE TABLE users (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Private Information per reference design (2nd/3rd image)
+-- Every employee has a complete private record; access is row-level
+ALTER TABLE users ADD COLUMN IF NOT EXISTS company TEXT DEFAULT 'Dayflow Inc.';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS manager TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS dob DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS nationality TEXT DEFAULT 'Indian';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT CHECK (gender IN ('Male','Female','Other'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS marital_status TEXT CHECK (marital_status IN ('Single','Married','Divorced'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS emergency_contact TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS login_id TEXT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS pan TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS uan TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_account TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ifsc TEXT;
+
+-- Salary structure (Salary Info tab - admin only per Important box)
+CREATE TABLE IF NOT EXISTS salary_structures (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  wage_type TEXT NOT NULL DEFAULT 'Fixed' CHECK (wage_type IN ('Fixed')),
+  monthly_wage INTEGER NOT NULL,
+  yearly_wage INTEGER NOT NULL,
+  working_days_per_week INTEGER NOT NULL DEFAULT 5,
+  break_time_hrs NUMERIC(3,1) NOT NULL DEFAULT 1.0,
+  pf_employer_rate NUMERIC(4,2) NOT NULL DEFAULT 12.00,
+  pf_employee_rate NUMERIC(4,2) NOT NULL DEFAULT 12.00,
+  professional_tax INTEGER NOT NULL DEFAULT 200,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS salary_components (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  salary_structure_id UUID REFERENCES salary_structures(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  computation_type TEXT NOT NULL CHECK (computation_type IN ('Fixed','Percent of Wage','Percent of Basic')),
+  value NUMERIC(10,2) NOT NULL,
+  computed_amount INTEGER NOT NULL,
+  UNIQUE(salary_structure_id, name)
+);
+
+-- ============================================================
+-- Row-Level Security / Backend Authorization (Private & Security)
+-- Enforces: Employee can VIEW/EDIT only own rows; Admin/HR can manage all
+-- This is server-side — UI hiding alone is not sufficient
+-- ============================================================
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE salary_structures ENABLE ROW LEVEL SECURITY;
+ALTER TABLE salary_components ENABLE ROW LEVEL SECURITY;
+
+-- Example: replace auth.uid() with your auth provider (Supabase, etc.)
+-- For local demo, the same checks are mirrored in src/lib/store.ts -> updateEmployee/addEmployee with role checks
+
+DROP POLICY IF EXISTS users_select_own_or_admin ON users;
+CREATE POLICY users_select_own_or_admin ON users
+  FOR SELECT USING (
+    id = auth.uid() OR EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin')
+  );
+DROP POLICY IF EXISTS users_update_own_or_admin ON users;
+CREATE POLICY users_update_own_or_admin ON users
+  FOR UPDATE USING (
+    id = auth.uid() OR EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin')
+  ) WITH CHECK (
+    id = auth.uid() OR EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin')
+  );
+
+DROP POLICY IF EXISTS salary_select_own_or_admin ON salary_structures;
+CREATE POLICY salary_select_own_or_admin ON salary_structures
+  FOR SELECT USING (
+    user_id = auth.uid() OR EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin')
+  );
+DROP POLICY IF EXISTS salary_update_admin_only ON salary_structures;
+CREATE POLICY salary_update_admin_only ON salary_structures
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin')
+  );
+
+-- Private fields are part of users row, so the same RLS above applies.
+-- For stricter column-level privacy, create a view that omits PII for non-owners:
+CREATE OR REPLACE VIEW v_users_public AS
+  SELECT id, employee_id, name, email, avatar, department_id, role, company, location, join_date, login_id
+  FROM users;
+CREATE OR REPLACE VIEW v_users_private AS
+  SELECT id, employee_id, dob, address, nationality, gender, marital_status, emergency_contact, pan, uan, bank_account, bank_name, ifsc
+  FROM users
+  WHERE id = auth.uid() OR EXISTS (SELECT 1 FROM users u WHERE u.id = auth.uid() AND u.role = 'admin');
+
 CREATE TABLE attendance (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,

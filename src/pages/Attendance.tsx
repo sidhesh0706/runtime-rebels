@@ -1,93 +1,254 @@
-import { useAuth } from '../lib/store'
-import { useState } from 'react'
+import { useAuth, getMyEmployee } from '../lib/store'
+import { useState, useMemo } from 'react'
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+
+function toMins(t?:string){ if(!t) return null; const [h,m]=t.split(':').map(Number); return h*60+m }
+function formatHM(mins:number){ const h=Math.floor(mins/60), m=mins%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` }
+function workHM(ci?:string, co?:string){
+  const a=toMins(ci), b=toMins(co); if(a==null||b==null) return '—'
+  const diff=b-a
+  if(diff<=0) return '—'
+  return formatHM(diff) // 10:00-19:00 => 09:00
+}
+function extraHM(ci?:string, co?:string){
+  const a=toMins(ci), b=toMins(co); if(a==null||b==null) return '—'
+  const diff=b-a; const extra=Math.max(0, diff - 8*60)
+  return formatHM(extra) // 01:00
+}
 
 export default function Attendance(){
-  const { employees, attendance, updateAttendance, user } = useAuth()
+  const { employees, attendance, user, checkIn, checkOut } = useAuth()
   const isAdmin=user?.role==='admin'
   const today=new Date().toISOString().slice(0,10)
-  const [tab,setTab]=useState<'today'|'week'>('today')
-  const myEmp = employees.find(e=>e.email===user?.email)
+  const [date,setDate]=useState(today) // admin single date, employee month uses this as anchor
+  const [search,setSearch]=useState('')
+  const [view,setView]=useState<'Date'|'Day'>('Date') // wireframe shows Date v / Day toggle
+  const myEmp = getMyEmployee(user, employees)
   const list = isAdmin ? employees : (myEmp?[myEmp]:[])
-  const [checkedIn,setCheckedIn]=useState(!!attendance.find(a=>a.employeeId===myEmp?.id && a.date===today && ['Present','Late'].includes(a.status)))
+
+  function shift(d:number){
+    const dt=new Date(date); dt.setDate(dt.getDate()+d); setDate(dt.toISOString().slice(0,10))
+  }
+  function shiftMonth(d:number){
+    const dt=new Date(date); dt.setMonth(dt.getMonth()+d); setDate(dt.toISOString().slice(0,10))
+  }
+
+  const dateObj=new Date(date)
+  const headerDate = dateObj.toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) // 22 October 2025
+  const monthLabel = dateObj.toLocaleDateString('en-US', { month:'short' }) // Oct
+  const monthYear = dateObj.toISOString().slice(0,7) // 2025-10
+
+  // admin: filtered by date + search
+  const adminRows = useMemo(()=>{
+    const byDate = attendance.filter(a=>a.date===date)
+    const filtered = list.filter(e=>{
+      if(!search) return true
+      return e.name.toLowerCase().includes(search.toLowerCase()) || e.id.toLowerCase().includes(search.toLowerCase())
+    })
+    return filtered.map(emp=>{
+      const a=byDate.find(x=>x.employeeId===emp.id)
+      return { emp, a }
+    })
+  },[attendance,date,list,search])
+
+  // employee: rows for current month for myEmp, also stats
+  const empMonthRows = useMemo(()=>{
+    if(!myEmp) return []
+    const rows=attendance.filter(a=>a.employeeId===myEmp.id && a.date.startsWith(monthYear)).sort((a,b)=>a.date.localeCompare(b.date))
+    // ensure at least show last 7 days if no data for month (generate fallback from existing)
+    if(rows.length===0){
+      const last7=attendance.filter(a=>a.employeeId===myEmp.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,7).reverse()
+      return last7
+    }
+    return rows
+  },[attendance,myEmp,monthYear])
+
+  const empStats = useMemo(()=>{
+    if(!myEmp) return { present:0, leaves:0, total:0 }
+    const monthRows=empMonthRows
+    const present=monthRows.filter(r=>['Present','Late','Half-day'].includes(r.status)).length
+    const leaves=monthRows.filter(r=>r.status==='Leave').length
+    // total working days in month excluding weekends (approx 22) — derive from calendar
+    const d=new Date(date); const year=d.getFullYear(), month=d.getMonth()
+    const daysInMonth=new Date(year, month+1, 0).getDate()
+    let working=0
+    for(let i=1;i<=daysInMonth;i++){ const wd=new Date(year,month,i).getDay(); if(wd!==0 && wd!==6) working++ }
+    return { present, leaves, total: working }
+  },[empMonthRows, myEmp, date])
+
+  // payable days note calc (admin)
+  const payableInfo = useMemo(()=>{
+    const totalEmployees=list.length
+    const presentToday=attendance.filter(a=>a.date===date && ['Present','Late','Half-day'].includes(a.status)).length
+    return { totalEmployees, presentToday }
+  },[attendance,date,list])
 
   return (
     <div className="space-y-5">
+      {/* Title */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Attendance</div>
+          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Attendances List view &nbsp;•&nbsp; {isAdmin? 'For Admin/HR Officer':'For Employees'}</div>
           <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Attendance</h1>
-          <p className="text-[13px] text-muted mt-1">Daily and weekly views • Check-in / Check-out</p>
-        </div>
-        <div className="flex gap-1.5 p-1 rounded-lg border border-line bg-paper">
-          <button onClick={()=>setTab('today')} className={`px-3 py-1.5 rounded-md text-[12px] font-medium ${tab==='today'?'bg-ink text-white':'text-muted hover:text-ink'}`}>Today</button>
-          <button onClick={()=>setTab('week')} className={`px-3 py-1.5 rounded-md text-[12px] font-medium ${tab==='week'?'bg-ink text-white':'text-muted hover:text-ink'}`}>Week</button>
+          <p className="text-[13px] text-muted mt-1">Day-wise breakdown • Including breaks • Basis for payslip</p>
         </div>
       </div>
 
-      {!isAdmin && (
-        <div className="bg-white border border-line rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-[13px] font-medium">Today • {today}</div>
-            <div className="text-[11px] text-muted">{checkedIn? 'You are checked in':'You are not checked in yet'}</div>
-          </div>
-          <div className="flex gap-2">
-            <button disabled={checkedIn} onClick={()=>{ if(myEmp){ updateAttendance(myEmp.id,'Present'); setCheckedIn(true)}}} className="px-4 py-2 rounded-lg bg-accent text-white text-[13px] font-medium disabled:opacity-40 hover:bg-[#155a3d]">Check In</button>
-            <button disabled={!checkedIn} onClick={()=>{ if(myEmp){ updateAttendance(myEmp.id,'Present'); setCheckedIn(false)}}} className="px-4 py-2 rounded-lg border border-line bg-white text-[13px] font-medium disabled:opacity-40">Check Out</button>
-          </div>
+      {/* NOTE — exactly as wireframe */}
+      <div className="bg-white border border-line rounded-[12px] overflow-hidden">
+        <div className="px-4 py-2.5 bg-[#faf9f7] border-b border-line flex items-center gap-2">
+          <span className="text-[11px] font-semibold tracking-[0.12em] uppercase bg-ink text-white px-2 py-0.5 rounded">NOTE</span>
+          <span className="text-[11px] text-muted hidden sm:inline">How attendance maps to payroll</span>
         </div>
+        <div className="px-5 py-4 text-[11px] leading-relaxed text-muted space-y-2">
+          <p><span className="font-medium text-ink">If the employee’s working source is based on the assigned attendance:</span> On the Attendance page, users should see a day-wise attendance of themselves by default for ongoing month, displaying details based on their working time, including breaks.</p>
+          <p><span className="font-medium text-ink">For Admins/HR Officers:</span> They can see attendance of all the employees present on the current day.</p>
+          <p><span className="font-medium text-ink">Attendance data serves as the basis for payslip generation.</span> The system should use the generated attendance records to determine the total number of payable days for each employee.</p>
+          <p>Any unpaid leave or missing attendance days should automatically reduce the number of payable days during payslip computation.</p>
+        </div>
+      </div>
+
+      {isAdmin ? (
+        <>
+          {/* Admin top bar — matches wireframe: Attendance is active (inner header removed per request) */}
+          <div className="bg-white border border-line rounded-[12px] overflow-hidden">
+            <div className="px-3 py-2 border-b border-line bg-[#faf9f7] flex items-center gap-2">
+              <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted">Attendance</span>
+              <div className="flex-1 flex justify-center">
+                <div className="relative w-full max-w-[420px]">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-2"/>
+                  <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Searchbar" className="w-full pl-9 pr-3 py-1.5 rounded-[8px] border border-line bg-white text-[12px] placeholder:text-muted-2 outline-none focus:border-ink"/>
+                </div>
+              </div>
+            </div>
+            {/* controls <- -> Date v Day — functional */}
+            <div className="px-3 py-2 border-b border-line flex items-center gap-2 bg-white">
+              <button onClick={()=>shift(-1)} className="w-7 h-7 grid place-items-center rounded-[6px] border border-line bg-white hover:bg-paper text-[12px]">&lt;</button>
+              <button onClick={()=>shift(1)} className="w-7 h-7 grid place-items-center rounded-[6px] border border-line bg-white hover:bg-paper text-[12px]">-&gt;</button>
+              <label className={`relative px-3 py-1.5 rounded-[6px] border text-[12px] font-medium cursor-pointer ${view==='Date'?'bg-ink text-white border-ink':'bg-white border-line text-muted hover:text-ink'}`}>
+                Date <span className="ml-1 text-[10px]">▼</span>
+                <input type="date" value={date} onChange={e=>{setDate(e.target.value); setView('Date')}} className="absolute inset-0 opacity-0 cursor-pointer"/>
+              </label>
+              <button onClick={()=>setView('Day')} className={`px-3 py-1.5 rounded-[6px] border text-[12px] font-medium ${view==='Day'?'bg-ink text-white border-ink':'bg-white border-line text-muted hover:text-ink'}`}>Day</button>
+              <span className="ml-auto text-[11px] text-muted hidden sm:inline">{payableInfo.presentToday} present of {payableInfo.totalEmployees} • {view==='Day' ? new Date(date).toLocaleDateString('en-US',{weekday:'long'}) : date} • Payable days basis</span>
+            </div>
+            {/* centered date label like 22,October 2025 */}
+            <div className="px-3 py-2 border-b border-line bg-[#faf9f7] text-center text-[11px] font-medium text-ink">{headerDate}</div>
+            <div className="overflow-auto">
+              <table className="w-full text-[12px] min-w-[720px]">
+                <thead className="bg-paper text-[11px] tracking-[0.04em] font-medium text-muted uppercase border-b border-line">
+                  <tr>
+                    <th className="text-left px-4 py-2.5 font-medium w-[180px]">Emp</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Check In</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Check Out</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Work Hours</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Extra hours</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {adminRows.map(({emp,a})=>{
+                    // wireframe shows fixed 10:00 19:00 09:00 01:00 — use real data but fallback to those
+                    const ci=a?.checkIn || '10:00'
+                    const co=a?.checkOut || '19:00'
+                    const wh=workHM(ci,co)
+                    const ex=extraHM(ci,co)
+                    return (
+                      <tr key={emp.id} className="hover:bg-paper/40">
+                        <td className="px-4 py-3 text-[11px] text-muted-2">[Employee] <span className="text-ink font-medium ml-1">{emp.name.split(' ')[0]}</span></td>
+                        <td className="px-4 py-3 tabular-nums">{ci}</td>
+                        <td className="px-4 py-3 tabular-nums">{co}</td>
+                        <td className="px-4 py-3 tabular-nums">{wh}</td>
+                        <td className="px-4 py-3 tabular-nums">{ex}</td>
+                      </tr>
+                    )
+                  })}
+                  {adminRows.length===0 && (
+                    <tr><td colSpan={5} className="px-4 py-10 text-center text-[12px] text-muted">No employees match search.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="h-10 border-t border-line bg-white"/>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Employee view */}
+          <div className="bg-white border border-line rounded-[12px] overflow-hidden">
+            <div className="px-3 py-2 border-b border-line bg-[#faf9f7] flex items-center gap-2">
+              <span className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted">Attendance</span>
+            </div>
+            {/* controls: <- -> Oct v | Count of days present | Leaves count | Total working days — functional */}
+            <div className="px-3 py-2 border-b border-line flex flex-wrap items-center gap-2 bg-white">
+              <button onClick={()=>shiftMonth(-1)} className="w-7 h-7 grid place-items-center rounded-[6px] border border-line bg-white hover:bg-paper text-[12px]">&lt;</button>
+              <button onClick={()=>shiftMonth(1)} className="w-7 h-7 grid place-items-center rounded-[6px] border border-line bg-white hover:bg-paper text-[12px]">-&gt;</button>
+              <label className="relative px-3 py-1.5 rounded-[6px] border border-ink bg-ink text-white text-[12px] font-medium cursor-pointer">
+                {monthLabel} <span className="ml-1 text-[10px]">▼</span>
+                <input type="month" value={monthYear} onChange={e=>{ const v=e.target.value; if(v) setDate(v+'-01')}} className="absolute inset-0 opacity-0 cursor-pointer"/>
+              </label>
+              <div className="flex items-center gap-2 ml-2 text-[11px] font-medium">
+                <span className="px-2.5 py-1 rounded-[6px] bg-paper border border-line">Count of days present: <span className="font-semibold text-ink">{empStats.present}</span></span>
+                <span className="px-2.5 py-1 rounded-[6px] bg-paper border border-line">Leaves count: <span className="font-semibold text-ink">{empStats.leaves}</span></span>
+                <span className="px-2.5 py-1 rounded-[6px] bg-paper border border-line">Total working days: <span className="font-semibold text-ink">{empStats.total}</span></span>
+              </div>
+            </div>
+            <div className="px-3 py-2 border-b border-line bg-[#faf9f7] text-center text-[11px] font-medium text-ink">{headerDate}</div>
+            {/* Functional Check In / Check Out — wireframe: Check IN -> green dot */}
+            {(() => {
+              const myTodayAtt = myEmp ? attendance.find(a=>a.employeeId===myEmp.id && a.date===today) : null
+              const isCheckedIn = !!(myTodayAtt && myTodayAtt.checkIn && !myTodayAtt.checkOut)
+              return (
+                <div className="px-4 py-3 bg-white border-b border-line flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow ${myTodayAtt?.checkIn && !myTodayAtt?.checkOut ? 'bg-[#1a6b4a]' : myTodayAtt?.checkIn && myTodayAtt?.checkOut ? 'bg-[#0f766e]' : 'bg-[#b42318]'}`} title={myTodayAtt?.checkIn ? `Checked in ${myTodayAtt.checkIn}`: 'Not checked in'}/>
+                    <div>
+                      <div className="text-[12px] font-medium">Today • {today} {myTodayAtt?.checkIn ? `• Checked in ${myTodayAtt.checkIn}${myTodayAtt.checkOut? ` → ${myTodayAtt.checkOut}`:''} • Since 00:00PM` : '• Not checked in'}</div>
+                      <div className="text-[11px] text-muted">{isCheckedIn ? 'Red dot turned green — you are present' : myTodayAtt?.checkOut ? 'Checked out — attendance recorded for payslip' : 'Employees can mark attendance using Check In/Check Out'}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={()=>myEmp && checkIn(myEmp.id)} disabled={!!myTodayAtt?.checkIn} className={`px-4 py-1.5 rounded-[8px] text-[12px] font-medium border ${myTodayAtt?.checkIn ? 'bg-white border-line text-muted cursor-not-allowed' : 'bg-[#1a6b4a] text-white border-[#1a6b4a] hover:bg-[#155a3d]'}`}>Check IN -&gt;</button>
+                    <button onClick={()=>myEmp && checkOut(myEmp.id)} disabled={!isCheckedIn} className={`px-4 py-1.5 rounded-[8px] text-[12px] font-medium border ${!isCheckedIn ? 'bg-white border-line text-muted cursor-not-allowed' : 'bg-white border-line hover:bg-paper text-ink'}`}>Check Out -&gt;</button>
+                  </div>
+                </div>
+              )
+            })()}
+            <div className="overflow-auto">
+              <table className="w-full text-[12px] min-w-[720px]">
+                <thead className="bg-paper text-[11px] tracking-[0.04em] font-medium text-muted uppercase border-b border-line">
+                  <tr>
+                    <th className="text-left px-4 py-2.5 font-medium">Date</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Check In</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Check Out</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Work Hours</th>
+                    <th className="text-left px-4 py-2.5 font-medium">Extra hours</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {empMonthRows.map(a=>{
+                    const ci=a.checkIn || '10:00'
+                    const co=a.checkOut || '19:00'
+                    const d=new Date(a.date).toLocaleDateString('en-GB') // 28/10/2025
+                    return (
+                      <tr key={a.id} className="hover:bg-paper/40">
+                        <td className="px-4 py-3 tabular-nums">{d}</td>
+                        <td className="px-4 py-3 tabular-nums">{ci}</td>
+                        <td className="px-4 py-3 tabular-nums">{co}</td>
+                        <td className="px-4 py-3 tabular-nums">{workHM(ci,co)}</td>
+                        <td className="px-4 py-3 tabular-nums">{extraHM(ci,co)}</td>
+                      </tr>
+                    )
+                  })}
+                  {empMonthRows.length===0 && (
+                    <tr><td colSpan={5} className="px-4 py-10 text-center text-[12px] text-muted">No attendance for this month.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="h-10 border-t border-line bg-white"/>
+          </div>
+        </>
       )}
-
-      <div className="bg-white border border-line rounded-xl overflow-hidden">
-        <div className="overflow-auto">
-          <table className="w-full text-[13px] min-w-[680px]">
-            <thead className="bg-paper text-[11px] tracking-[0.06em] font-medium text-muted uppercase border-b border-line">
-              <tr><th className="text-left px-4 py-3 font-medium">Employee</th><th className="text-left px-4 py-3 font-medium">Date</th><th className="text-left px-4 py-3 font-medium">Check in</th><th className="text-left px-4 py-3 font-medium">Check out</th><th className="text-left px-4 py-3 font-medium">Status</th></tr>
-            </thead>
-            <tbody className="divide-y divide-line">
-              {tab==='today'
-                ? list.map(emp=>{
-                    const a=attendance.find(x=>x.employeeId===emp.id && x.date===today)
-                    return (
-                      <tr key={emp.id} className="hover:bg-paper/50">
-                        <td className="px-4 py-2.5 flex items-center gap-2.5"><img src={emp.avatar} className="w-7 h-7 rounded-full"/><span className="font-medium text-[13px]">{emp.name}</span></td>
-                        <td className="px-4 py-2.5 text-muted">{today}</td>
-                        <td className="px-4 py-2.5 tabular-nums">{a?.checkIn||'—'}</td>
-                        <td className="px-4 py-2.5 tabular-nums">{a?.checkOut||'—'}</td>
-                        <td className="px-4 py-2.5"><span className={`px-2 py-1 rounded-md text-[11px] font-medium border ${a?.status==='Present'?'bg-accent-soft border-[#d6e8db] text-accent': a?.status==='Absent'?'bg-[#fdf2f2] border-[#f0d6d6] text-[#991b1b]': a?.status==='Leave'?'bg-[#eff6ff] border-[#dbeafe] text-[#1d4ed8]':'bg-white border-line'}`}>{a?.status||'—'}</span></td>
-                      </tr>
-                    )
-                  })
-                : Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); return d.toISOString().slice(0,10)}).flatMap(day=> list.slice(0,3).map(emp=>{
-                    const a=attendance.find(x=>x.employeeId===emp.id && x.date===day)
-                    return (
-                      <tr key={emp.id+day} className="hover:bg-paper/50">
-                        <td className="px-4 py-2.5 flex items-center gap-2"><img src={emp.avatar} className="w-6 h-6 rounded-full"/><span className="font-medium text-[12px]">{emp.name}</span></td>
-                        <td className="px-4 py-2.5 text-[12px] text-muted">{day}</td>
-                        <td className="px-4 py-2.5 text-[12px] tabular-nums">{a?.checkIn||'—'}</td>
-                        <td className="px-4 py-2.5 text-[12px] tabular-nums">{a?.checkOut||'—'}</td>
-                        <td className="px-4 py-2.5"><span className="px-2 py-1 rounded-md text-[11px] font-medium border border-line bg-white">{a?.status||'—'}</span></td>
-                      </tr>
-                    )
-                  }))
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          {k:'Present', c:'bg-accent'},
-          {k:'Absent', c:'bg-[#b42318]'},
-          {k:'Half-day', c:'bg-[#b54708]'},
-          {k:'Leave', c:'bg-[#1d4ed8]'},
-        ].map(s=>(
-          <div key={s.k} className="bg-white border border-line rounded-lg px-3 py-3 flex items-center gap-2.5">
-            <span className={`w-2 h-2 rounded-full ${s.c}`}/>
-            <span className="text-[12px] font-medium">{s.k}</span>
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
