@@ -1,12 +1,12 @@
-import { createContext, useContext, useEffect, useState, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useRef, type ReactNode } from 'react'
 import { loadSeed, saveData, type Attendance, type Employee, type LeaveRequest, type Role, type Seed, type PayrollRecord, genLoginId, salaryBreakdown } from './data'
 
 type User = { id:string; name:string; email:string; role:Role; avatar:string; department?:string; loginId?:string; companyName?:string; phone?:string; mustChangePassword?:boolean }
 
 type Ctx = {
   user: User | null
-  login: (email:string, pass:string) => boolean
-  signup: (name:string,email:string,pass:string,role:Role, extra?:{companyName?:string; phone?:string})=>boolean
+  login: (email:string, pass:string) => Promise<boolean>
+  signup: (name:string,email:string,pass:string,role:Role, extra?:{companyName?:string; phone?:string})=>Promise<boolean>
   logout: ()=>void
   data: ReturnType<typeof loadSeed>
   updateLeaves: (fn:(prev:LeaveRequest[])=>LeaveRequest[])=>void
@@ -14,8 +14,8 @@ type Ctx = {
   checkIn: (empId:string)=>void
   checkOut: (empId:string)=>void
   updateEmployee: (id:string, patch:Partial<Employee>)=>void
-  updateSecurity: (id:string, currentPass:string, newPass:string)=>boolean
-  addEmployee: (payload:{name:string; email:string; department:Employee['department']; role:string; phone?:string; manager?:string; location?:string; dob?:string})=>{employee:Employee; tempPassword:string; loginId:string} | null
+  updateSecurity: (id:string, currentPass:string, newPass:string)=>Promise<boolean>
+  addEmployee: (payload:{name:string; email:string; department:Employee['department']; role:string; phone?:string; manager?:string; location?:string; dob?:string})=>Promise<{employee:Employee; tempPassword:string; loginId:string} | null>
   reviewLeave: (leaveId:string,status:'Approved'|'Rejected',comment:string)=>Promise<{ok:boolean; error?:string}>
   updatePayrollWage: (employeeId:string,wage:number)=>Promise<{ok:boolean; error?:string}>
   changePassword: (currentPassword:string,newPassword:string)=>Promise<{ok:boolean; error?:string}>
@@ -27,34 +27,15 @@ type Ctx = {
 
 const AuthContext = createContext<Ctx>(null as any)
 
-const USERS_KEY='dayflow_users'
 const SESSION_KEY='dayflow_session'
 export const DEMO_ADMIN_PASSWORD = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || 'Admin@123'
 export const DEMO_EMPLOYEE_PASSWORD = import.meta.env.VITE_DEMO_EMPLOYEE_PASSWORD || 'Employee@123'
 
-function getUsers(): Array<User & {password:string}> {
-  const v=localStorage.getItem(USERS_KEY)
-  if(v) try{
-    const parsed=JSON.parse(v)
-    // force demo accounts to match current DEMO passwords (fixes old empty/change-me values)
-    let mutated=false
-    for(const u of parsed){
-      if(u.email==='admin@dayflow.co' && u.password!==DEMO_ADMIN_PASSWORD){ u.password=DEMO_ADMIN_PASSWORD; mutated=true }
-      if(u.email==='isha@dayflow.co' && u.password!==DEMO_EMPLOYEE_PASSWORD){ u.password=DEMO_EMPLOYEE_PASSWORD; mutated=true }
-      if(!u.password){ // fallback
-        if(u.email==='admin@dayflow.co') { u.password=DEMO_ADMIN_PASSWORD; mutated=true }
-        if(u.email==='isha@dayflow.co') { u.password=DEMO_EMPLOYEE_PASSWORD; mutated=true }
-      }
-    }
-    if(mutated) localStorage.setItem(USERS_KEY, JSON.stringify(parsed))
-    if(parsed.length) return parsed
-  }catch{}
-  const defaults=[
-    { id:'U1', name:'Aarav Sharma', email:'admin@dayflow.co', password:DEMO_ADMIN_PASSWORD, role:'admin' as Role, avatar:'https://i.pravatar.cc/150?img=12', loginId:'DFAS1001' },
-    { id:'U2', name:'Isha Patel', email:'isha@dayflow.co', password:DEMO_EMPLOYEE_PASSWORD, role:'employee' as Role, avatar:'https://i.pravatar.cc/150?img=5', loginId:'DFIP1002' },
-  ]
-  localStorage.setItem(USERS_KEY, JSON.stringify(defaults))
-  return defaults
+async function requestJson<T>(url:string,options?:RequestInit):Promise<T>{
+  const response=await fetch(url,{credentials:'same-origin',...options})
+  const result:any=await response.json().catch(()=>({}))
+  if(!response.ok)throw new Error(result.error||'The local DayFlow API is unavailable')
+  return result as T
 }
 
 export function getMyEmployee(user: User | null, employees: Employee[]): Employee | undefined {
@@ -68,8 +49,31 @@ export function getMyEmployee(user: User | null, employees: Employee[]): Employe
 export function AuthProvider({children}:{children:ReactNode}){
   const [user,setUser]=useState<User|null>(()=>{ const s=localStorage.getItem(SESSION_KEY); return s? JSON.parse(s): null })
   const [data,setData]=useState<Seed>(()=>loadSeed())
+  const hydrated=useRef(false)
+  const persistTimer=useRef<ReturnType<typeof setTimeout>|null>(null)
 
-  useEffect(()=>{ saveData(data)},[data])
+  async function loadWorkspace(fallback:Seed){
+    const result=await requestJson<{data:Seed|null}>('/api/workspace')
+    if(result.data){setData(result.data);saveData(result.data)}
+    else await requestJson('/api/workspace',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:fallback})})
+    hydrated.current=true
+  }
+
+  useEffect(()=>{
+    if(!user)return
+    requestJson<{user:User|null}>('/api/auth').then(async result=>{
+      if(!result.user){setUser(null);localStorage.removeItem(SESSION_KEY);return}
+      setUser(result.user);localStorage.setItem(SESSION_KEY,JSON.stringify(result.user));await loadWorkspace(data)
+    }).catch(()=>{})
+  },[])
+
+  useEffect(()=>{
+    saveData(data)
+    if(!user||!hydrated.current)return
+    if(persistTimer.current)clearTimeout(persistTimer.current)
+    persistTimer.current=setTimeout(()=>{requestJson('/api/workspace',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data})}).catch(error=>console.error('[PostgreSQL sync]',error))},180)
+    return ()=>{if(persistTimer.current)clearTimeout(persistTimer.current)}
+  },[data,user])
 
   // Backend RLS simulation: employees see only own PII; admin sees all (mirrors v_users_private view)
   const visibleEmployees = useMemo(()=>{
@@ -102,30 +106,19 @@ export function AuthProvider({children}:{children:ReactNode}){
     })
   },[data.employees, user])
 
-  const login=(email:string, pass:string)=>{
-    const users=getUsers()
-    // allow login with email OR loginId
-    const found=users.find(u=>(u.email.toLowerCase()===email.toLowerCase() || (u as any).loginId?.toLowerCase()===email.toLowerCase()) && u.password===pass)
-    if(!found) return false
-    const {password, ...rest}=found
-    setUser(rest as User); localStorage.setItem(SESSION_KEY, JSON.stringify(rest))
-    return true
+  const login=async(email:string, pass:string)=>{
+    try{
+      const result=await requestJson<{user:User}>('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',identifier:email,password:pass})})
+      setUser(result.user);localStorage.setItem(SESSION_KEY,JSON.stringify(result.user));await loadWorkspace(data);return true
+    }catch{return false}
   }
-  const signup=(name:string,email:string,pass:string,role:Role, extra?:{companyName?:string; phone?:string})=>{
-    const users=getUsers()
-    if(users.some(u=>u.email.toLowerCase()===email.toLowerCase())) return false
-    // generate loginId similar to data.ts
-    const parts=name.trim().split(/\s+/)
-    const ini=(parts[0]?.[0]||'A')+(parts[1]?.[0]||'X')
-    const comp = (extra?.companyName||'DF').slice(0,2).toUpperCase().replace(/[^A-Z]/g,'A').padEnd(2,'D')
-    const loginId=`${comp}${ini.toUpperCase()}${String(Date.now()).slice(-4)}`
-    const newUser={ id: 'U'+Date.now(), name, email, password:pass, role, avatar:`https://i.pravatar.cc/150?img=${Math.floor(Math.random()*70)+1}`, loginId, companyName: extra?.companyName, phone: extra?.phone }
-    users.push(newUser); localStorage.setItem(USERS_KEY, JSON.stringify(users))
-    const {password, ...rest}=newUser
-    setUser(rest as User); localStorage.setItem(SESSION_KEY, JSON.stringify(rest))
-    return true
+  const signup=async(name:string,email:string,pass:string,_role:Role, extra?:{companyName?:string; phone?:string})=>{
+    try{
+      const result=await requestJson<{user:User}>('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',company:extra?.companyName,name,email,phone:extra?.phone,password:pass})})
+      setUser(result.user);localStorage.setItem(SESSION_KEY,JSON.stringify(result.user));await loadWorkspace(data);return true
+    }catch{return false}
   }
-  const logout=()=>{ setUser(null); localStorage.removeItem(SESSION_KEY)}
+  const logout=()=>{requestJson('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{});setUser(null);hydrated.current=false;localStorage.removeItem(SESSION_KEY)}
 
   const updateLeaves=(fn:(prev:LeaveRequest[])=>LeaveRequest[])=>{
     setData(d=>({...d, leaves: fn(d.leaves)}))
@@ -201,35 +194,23 @@ export function AuthProvider({children}:{children:ReactNode}){
     setData(d=>({...d, employees: d.employees.map(e=> e.id===id ? {...e, ...patch}: e)}))
   }
   // Security: change password - only own (or admin reset)
-  const updateSecurity=(id:string, currentPass:string, newPass:string)=>{
+  const updateSecurity=async(id:string, currentPass:string, newPass:string)=>{
     const myEmp = user ? getMyEmployee(user, data.employees) : undefined
     const isAdmin = user?.role==='admin'
     const isOwn = myEmp?.id===id
-    if(!isOwn && !isAdmin) { console.warn('[API 403] Security update denied'); return false }
-    // verify current password for own, admin can force reset without current
-    const users=getUsers()
-    const targetEmp = data.employees.find(e=>e.id===id)
-    if(!targetEmp) return false
-    const uIdx=users.findIndex(u=>u.email.toLowerCase()===targetEmp.email.toLowerCase())
-    if(uIdx<0) return false
-    if(!isAdmin || isOwn){
-      if(users[uIdx].password !== currentPass) return false
-    }
-    if(newPass.length<6) return false
-    users[uIdx].password=newPass
-    localStorage.setItem(USERS_KEY, JSON.stringify(users))
-    return true
+    if(!isOwn && !isAdmin) return false
+    try{const result=await requestJson<{user:User}>('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'change-password',currentPassword:currentPass,newPassword:newPass})});setUser(result.user);localStorage.setItem(SESSION_KEY,JSON.stringify(result.user));return true}catch{return false}
   }
   const changePassword=async(currentPassword:string,newPassword:string)=>{
     if(!user) return {ok:false,error:'You must be signed in'}
     const employee=getMyEmployee(user, data.employees)
-    if(!employee || !updateSecurity(employee.id,currentPassword,newPassword)) return {ok:false,error:'Current password is incorrect'}
+    if(!employee || !(await updateSecurity(employee.id,currentPassword,newPassword))) return {ok:false,error:'Current password is incorrect'}
     const nextUser={...user,mustChangePassword:false}
     setUser(nextUser)
     localStorage.setItem(SESSION_KEY, JSON.stringify(nextUser))
     return {ok:true}
   }
-  const addEmployee=(payload:{name:string; email:string; department:Employee['department']; role:string; phone?:string; manager?:string; location?:string; dob?:string})=>{
+  const addEmployee=async(payload:{name:string; email:string; department:Employee['department']; role:string; phone?:string; manager?:string; location?:string; dob?:string})=>{
     // Backend authorization: only admin/HR can create employees
     if(user?.role!=='admin'){
       console.warn(`[API 403] Add employee denied: ${user?.email} not admin`)
@@ -238,8 +219,6 @@ export function AuthProvider({children}:{children:ReactNode}){
     // check duplicates
     const exists = data.employees.some(e=>e.email.toLowerCase()===payload.email.toLowerCase())
     if(exists) return null
-    const users=getUsers()
-    if(users.some(u=>u.email.toLowerCase()===payload.email.toLowerCase())) return null
     // generate IDs
     const nums=data.employees.map(e=>parseInt(e.id.replace('EMP',''))||1000)
     const nextNum=Math.max(...nums,1000)+1
@@ -295,9 +274,7 @@ export function AuthProvider({children}:{children:ReactNode}){
       documents:[],
       skillEndorsements: Object.fromEntries(skl.map(s=>[s,1])),
     }
-    // persist user for login
-    const newUser={ id:'U'+Date.now(), name:payload.name, email:payload.email, password:tempPassword, role:'employee' as Role, avatar:newEmp.avatar, loginId }
-    users.push(newUser); localStorage.setItem(USERS_KEY, JSON.stringify(users))
+    try{await requestJson('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:payload.name,email:payload.email,loginId,password:tempPassword,avatar:newEmp.avatar,department:payload.department,phone:payload.phone})})}catch{return null}
     // persist employee + attendance placeholder for today as Absent (will be updated on check-in)
     setData(d=>{
       const today=new Date().toISOString().slice(0,10)

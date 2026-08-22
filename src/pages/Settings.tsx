@@ -10,7 +10,7 @@ export default function Settings(){
         <div className="px-5 py-4 border-b border-line"><h3 className="text-[13px] font-semibold">DayFlow data layer</h3></div>
         <div className="p-5">
           <div className="text-[12px] font-mono bg-paper border border-line rounded-lg p-3 leading-relaxed">
-            Data: Browser local storage<br/>
+            Data: PostgreSQL (with a browser cache for fast startup)<br/>
             Persistence: This browser only • No backend service
           </div>
           <div className="mt-3 text-[11px] text-muted">Demo accounts, employee records, attendance, leave, and payroll changes are stored locally in this browser.</div>

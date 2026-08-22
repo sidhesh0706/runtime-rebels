@@ -297,11 +297,11 @@ export default function EmployeeProfile(){
               </div>
               {secMsg && <div className={`mt-3 text-[11px] px-3 py-2 rounded-[10px] border ${secMsg.type==='success'?'bg-[#edf4ef] border-[#d6e8db] text-[#1a6b4a]':'bg-[#fdf2f2] border-[#f0d6d6] text-[#7a2a2a]'}`}>{secMsg.text}</div>}
               <div className="mt-3 flex gap-2">
-                <button onClick={()=>{
+                <button onClick={async()=>{
                   setSecMsg(null)
                   if(!secCurr || !secNew || !secConfirm){ setSecMsg({type:'error', text:'Fill all fields'}); return }
                   if(secNew!==secConfirm){ setSecMsg({type:'error', text:'New and confirm do not match'}); return }
-                  const ok=updateSecurity(emp.id, secCurr, secNew)
+                  const ok=await updateSecurity(emp.id, secCurr, secNew)
                   if(!ok) setSecMsg({type:'error', text:'Failed — check current password / permissions.'})
                   else { setSecMsg({type:'success', text:'Password updated successfully'}); setSecCurr(''); setSecNew(''); setSecConfirm('') }
                 }} className="px-5 py-2 rounded-[10px] bg-ink text-white text-[12px] font-medium hover:bg-black">Update Password</button>

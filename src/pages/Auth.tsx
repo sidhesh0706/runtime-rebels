@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth, DEMO_ADMIN_PASSWORD, DEMO_EMPLOYEE_PASSWORD } from '../lib/store'
 import { Eye, EyeOff, Upload, Building2 } from 'lucide-react'
@@ -11,9 +11,14 @@ export function Login(){
   const [show,setShow]=useState(false)
   const [err,setErr]=useState('')
   const [demo,setDemo]=useState<'admin'|'employee'>('admin')
-  function doLogin(e?:React.FormEvent){
+  const [dbOnline,setDbOnline]=useState(false)
+  const [submitting,setSubmitting]=useState(false)
+  useEffect(()=>{fetch('/api/health').then(response=>response.ok?response.json():Promise.reject()).then(result=>setDbOnline(result.database==='connected')).catch(()=>setDbOnline(false))},[])
+  async function doLogin(e?:React.FormEvent){
     if(e) e.preventDefault()
-    const ok=login(email.trim(), pass.trim())
+    setSubmitting(true)
+    const ok=await login(email.trim(), pass.trim())
+    setSubmitting(false)
     if(!ok) setErr(`Invalid credentials. Try Admin: admin@dayflow.co / ${DEMO_ADMIN_PASSWORD}  or Employee: isha@dayflow.co / ${DEMO_EMPLOYEE_PASSWORD}. If still fails, click Reset Demo below.`)
     else { setErr(''); nav('/') }
   }
@@ -59,6 +64,7 @@ export function Login(){
           <div className="w-full max-w-[392px] bg-white border border-line rounded-[12px] p-6 shadow-soft">
             <h2 className="text-[18px] font-semibold tracking-tight">Welcome back</h2>
             <p className="text-[13px] text-muted mt-1">Sign in with your work email or Login ID</p>
+            <div className={`mt-3 inline-flex items-center gap-2 text-[11px] px-2.5 py-1 rounded-full border ${dbOnline?'bg-[#edf4ef] border-[#d6e8db] text-[#1a6b4a]':'bg-[#fdf2f2] border-[#f0d6d6] text-[#7a2a2a]'}`}><span className={`w-1.5 h-1.5 rounded-full ${dbOnline?'bg-[#1a6b4a]':'bg-[#b42318]'}`}/>{dbOnline?'PostgreSQL connected':'Database offline'}</div>
             <div className="flex gap-2 mt-4">
               <button type="button" onClick={selectAdmin} className={`flex-1 h-[32px] text-[11px] rounded-lg border font-medium leading-none inline-flex items-center justify-center transition ${demo==='admin' ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink hover:bg-paper'}`}>Admin</button>
               <button type="button" onClick={selectEmployee} className={`flex-1 h-[32px] text-[11px] rounded-lg border font-medium leading-none inline-flex items-center justify-center transition ${demo==='employee' ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink hover:bg-paper'}`}>Employee</button>
@@ -76,7 +82,7 @@ export function Login(){
                 </div>
               </div>
               {err && <div className="text-[12px] text-[#7a2a2a] bg-[#fdf2f2] border border-[#f0d6d6] rounded-[10px] px-3 py-2">{err}</div>}
-              <button className="w-full py-2.5 rounded-[10px] bg-ink text-white text-[13px] font-medium hover:bg-black transition">Log in</button>
+              <button disabled={submitting||!dbOnline} className="w-full py-2.5 rounded-[10px] bg-ink text-white text-[13px] font-medium hover:bg-black transition disabled:opacity-50">{submitting?'Connecting…':'Log in'}</button>
               {demo==='admin' && <div className="text-[11px] text-center text-muted">Don&apos;t have an account? <Link to="/signup" className="text-ink font-medium underline underline-offset-4">Sign up</Link></div>}
             </form>
           </div>
@@ -100,12 +106,12 @@ export function Signup(){
   const [show,setShow]=useState(false)
   const [logoName,setLogoName]=useState<string>('')
 
-  function onSubmit(e:React.FormEvent){
+  async function onSubmit(e:React.FormEvent){
     e.preventDefault()
     if(!company||!name||!email||!phone||!pass||!confirm){ setErr('Fill all fields'); return}
     if(pass!==confirm){ setErr('Passwords do not match'); return}
     if(pass.length<6){ setErr('Password must be at least 6 characters'); return}
-    const ok=signup(name,email,pass,'admin',{companyName: company, phone})
+    const ok=await signup(name,email,pass,'admin',{companyName: company, phone})
     if(!ok) setErr('Email already exists'); else nav('/')
   }
 

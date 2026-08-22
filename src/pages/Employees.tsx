@@ -31,10 +31,10 @@ export default function Employees(){
 
   const isAdmin=user?.role==='admin'
 
-  const handleAdd=()=>{
+  const handleAdd=async()=>{
     setAddError('')
     if(!form.name || !form.email || !form.department || !form.role){ setAddError('Name, Email, Department and Role are required'); return }
-    const res=addEmployee({name:form.name, email:form.email, department:form.department, role:form.role, phone:form.phone, manager:form.manager, location:form.location, dob:form.dob})
+    const res=await addEmployee({name:form.name, email:form.email, department:form.department, role:form.role, phone:form.phone, manager:form.manager, location:form.location, dob:form.dob})
     if(!res){ setAddError('Employee with this email already exists'); return }
     setAddResult(res); setForm({name:'', email:'', department:'Engineering' as any, role:'', phone:'', manager:'', location:'', dob:''})
   }

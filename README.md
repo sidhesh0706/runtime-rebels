@@ -1,6 +1,6 @@
 # DayFlow HRMS
 
-DayFlow is a browser-based workforce command center for attendance, leave, payroll, employee records, and team-health insights. It is a frontend-only application with demo data and changes stored in browser local storage.
+DayFlow is a PostgreSQL-backed workforce command center for attendance, leave, payroll, employee records, and team-health insights.
 
 ## Features
 
@@ -16,7 +16,9 @@ DayFlow is a browser-based workforce command center for attendance, leave, payro
 
 - React 19, TypeScript, Vite 8, and Tailwind CSS
 - React Router, Recharts, and Lucide React
-- Browser `localStorage` for demo users and workspace data
+- PostgreSQL for authentication and shared workspace persistence
+- Express API with server-side sessions and role-aware mutation checks
+- Browser cache for fast startup; PostgreSQL remains the source of truth
 
 ## Local setup
 
@@ -24,15 +26,17 @@ Requirements:
 
 - Node.js 22.12 or newer
 - npm
+- Docker Desktop (or PostgreSQL 16 on `localhost:5432`)
 
 From the project folder:
 
 ```powershell
 npm install
+npm run db:up
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). Data is retained in the current browser only.
+Open [http://localhost:5173](http://localhost:5173). The API automatically creates its tables and seeds the two demo accounts; workspace changes persist in PostgreSQL.
 
 ### Demo accounts
 
@@ -49,6 +53,9 @@ Use the Reset Demo action on the login screen to clear local data and regenerate
 npm run dev       # start the local Vite server
 npm run build     # typecheck and build the production client
 npm run preview   # preview the production build
+npm run db:up     # start local PostgreSQL
+npm run db:migrate
+npm run db:seed
 ```
 
 ## Project structure
@@ -56,9 +63,10 @@ npm run preview   # preview the production build
 ```text
 src/
   components/     shared application layout
-  lib/            local data seed, browser persistence, and metrics
+  lib/            typed seed, PostgreSQL synchronization, and metrics
   pages/          authentication and HR workflow screens
 public/assets/    local visual assets
+server/           Express API, sessions, schema, and database seed
 ```
 
 ## License
