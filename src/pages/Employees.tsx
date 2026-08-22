@@ -44,7 +44,7 @@ export default function Employees(){
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">People • After login the user must land on this page</div>
+
           <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Employees</h1>
           <p className="text-[13px] text-muted mt-1">{employees.length} people • Across 6 departments • Cards are clickable → view-only profile {isAdmin? '• HR can add new employees' : '• Contact HR to update your profile'}</p>
         </div>
