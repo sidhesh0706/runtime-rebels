@@ -88,23 +88,8 @@ export default function Attendance(){
       {/* Title */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Attendances List view &nbsp;•&nbsp; {isAdmin? 'For Admin/HR Officer':'For Employees'}</div>
+          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Attendance</div>
           <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Attendance</h1>
-          <p className="text-[13px] text-muted mt-1">Day-wise breakdown • Including breaks • Basis for payslip</p>
-        </div>
-      </div>
-
-      {/* NOTE — exactly as wireframe */}
-      <div className="bg-white border border-line rounded-[12px] overflow-hidden">
-        <div className="px-4 py-2.5 bg-[#faf9f7] border-b border-line flex items-center gap-2">
-          <span className="text-[11px] font-semibold tracking-[0.12em] uppercase bg-ink text-white px-2 py-0.5 rounded">NOTE</span>
-          <span className="text-[11px] text-muted hidden sm:inline">How attendance maps to payroll</span>
-        </div>
-        <div className="px-5 py-4 text-[11px] leading-relaxed text-muted space-y-2">
-          <p><span className="font-medium text-ink">If the employee’s working source is based on the assigned attendance:</span> On the Attendance page, users should see a day-wise attendance of themselves by default for ongoing month, displaying details based on their working time, including breaks.</p>
-          <p><span className="font-medium text-ink">For Admins/HR Officers:</span> They can see attendance of all the employees present on the current day.</p>
-          <p><span className="font-medium text-ink">Attendance data serves as the basis for payslip generation.</span> The system should use the generated attendance records to determine the total number of payable days for each employee.</p>
-          <p>Any unpaid leave or missing attendance days should automatically reduce the number of payable days during payslip computation.</p>
         </div>
       </div>
 
@@ -121,24 +106,27 @@ export default function Attendance(){
                 </div>
               </div>
             </div>
-            {/* controls <- -> Date v Day — functional */}
-            <div className="px-3 py-2 border-b border-line flex items-center gap-2 bg-white">
+            {/* controls <- -> Date / Day — fully functional */}
+            <div className="px-3 py-2 border-b border-line flex flex-wrap items-center gap-2 bg-white">
               <button onClick={()=>shift(-1)} className="w-7 h-7 grid place-items-center rounded-[6px] border border-line bg-white hover:bg-paper text-[12px]">&lt;</button>
               <button onClick={()=>shift(1)} className="w-7 h-7 grid place-items-center rounded-[6px] border border-line bg-white hover:bg-paper text-[12px]">-&gt;</button>
-              <label className={`relative px-3 py-1.5 rounded-[6px] border text-[12px] font-medium cursor-pointer ${view==='Date'?'bg-ink text-white border-ink':'bg-white border-line text-muted hover:text-ink'}`}>
-                Date <span className="ml-1 text-[10px]">▼</span>
-                <input type="date" value={date} onChange={e=>{setDate(e.target.value); setView('Date')}} className="absolute inset-0 opacity-0 cursor-pointer"/>
-              </label>
-              <button onClick={()=>setView('Day')} className={`px-3 py-1.5 rounded-[6px] border text-[12px] font-medium ${view==='Day'?'bg-ink text-white border-ink':'bg-white border-line text-muted hover:text-ink'}`}>Day</button>
+              <div className="flex items-center gap-1.5 p-1 rounded-[8px] bg-paper border border-line">
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] text-[12px] font-medium ${view==='Date' ? 'bg-ink text-white' : 'text-muted'}`}>
+                  <span>Date</span>
+                  <input type="date" value={date} onChange={e=>{setDate(e.target.value); setView('Date')}} className="w-[120px] bg-transparent outline-none text-[12px] font-medium cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-70"/>
+                </div>
+                <button onClick={()=>setView('Day')} className={`px-3 py-1 rounded-[6px] text-[12px] font-medium ${view==='Day'?'bg-ink text-white':'bg-white border border-line text-muted hover:text-ink'}`}>Day</button>
+              </div>
               <span className="ml-auto text-[11px] text-muted hidden sm:inline">{payableInfo.presentToday} present of {payableInfo.totalEmployees} • {view==='Day' ? new Date(date).toLocaleDateString('en-US',{weekday:'long'}) : date} • Payable days basis</span>
             </div>
-            {/* centered date label like 22,October 2025 */}
-            <div className="px-3 py-2 border-b border-line bg-[#faf9f7] text-center text-[11px] font-medium text-ink">{headerDate}</div>
+            {/* centered date label like 22,October 2025 — shows Day when Day view active */}
+            <div className="px-3 py-2 border-b border-line bg-[#faf9f7] text-center text-[11px] font-medium text-ink">{view==='Day' ? `${new Date(date).toLocaleDateString('en-US',{weekday:'long'})} • ${headerDate} • Day view` : headerDate}</div>
             <div className="overflow-auto">
               <table className="w-full text-[12px] min-w-[720px]">
                 <thead className="bg-paper text-[11px] tracking-[0.04em] font-medium text-muted uppercase border-b border-line">
                   <tr>
                     <th className="text-left px-4 py-2.5 font-medium w-[180px]">Emp</th>
+                    {view==='Day' && <th className="text-left px-4 py-2.5 font-medium">Day</th>}
                     <th className="text-left px-4 py-2.5 font-medium">Check In</th>
                     <th className="text-left px-4 py-2.5 font-medium">Check Out</th>
                     <th className="text-left px-4 py-2.5 font-medium">Work Hours</th>
@@ -152,9 +140,11 @@ export default function Attendance(){
                     const co=a?.checkOut || '19:00'
                     const wh=workHM(ci,co)
                     const ex=extraHM(ci,co)
+                    const dayName = new Date(a?.date || date).toLocaleDateString('en-US',{weekday:'short'})
                     return (
                       <tr key={emp.id} className="hover:bg-paper/40">
                         <td className="px-4 py-3 text-[11px] text-muted-2">[Employee] <span className="text-ink font-medium ml-1">{emp.name.split(' ')[0]}</span></td>
+                        {view==='Day' && <td className="px-4 py-3 tabular-nums text-muted">{dayName}</td>}
                         <td className="px-4 py-3 tabular-nums">{ci}</td>
                         <td className="px-4 py-3 tabular-nums">{co}</td>
                         <td className="px-4 py-3 tabular-nums">{wh}</td>
@@ -163,12 +153,12 @@ export default function Attendance(){
                     )
                   })}
                   {adminRows.length===0 && (
-                    <tr><td colSpan={5} className="px-4 py-10 text-center text-[12px] text-muted">No employees match search.</td></tr>
+                    <tr><td colSpan={view==='Day'?6:5} className="px-4 py-10 text-center text-[12px] text-muted">No employees match search.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <div className="h-10 border-t border-line bg-white"/>
+            <div className="h-10 border-t border-line bg-white flex items-center justify-center text-[11px] text-muted">{view==='Day' ? 'Day view — showing attendance grouped by weekday' : 'Date view — showing attendance for selected date'}</div>
           </div>
         </>
       ) : (
@@ -202,8 +192,8 @@ export default function Attendance(){
                   <div className="flex items-center gap-2.5">
                     <span className={`w-2.5 h-2.5 rounded-full border-2 border-white shadow ${myTodayAtt?.checkIn && !myTodayAtt?.checkOut ? 'bg-[#1a6b4a]' : myTodayAtt?.checkIn && myTodayAtt?.checkOut ? 'bg-[#0f766e]' : 'bg-[#b42318]'}`} title={myTodayAtt?.checkIn ? `Checked in ${myTodayAtt.checkIn}`: 'Not checked in'}/>
                     <div>
-                      <div className="text-[12px] font-medium">Today • {today} {myTodayAtt?.checkIn ? `• Checked in ${myTodayAtt.checkIn}${myTodayAtt.checkOut? ` → ${myTodayAtt.checkOut}`:''} • Since 00:00PM` : '• Not checked in'}</div>
-                      <div className="text-[11px] text-muted">{isCheckedIn ? 'Red dot turned green — you are present' : myTodayAtt?.checkOut ? 'Checked out — attendance recorded for payslip' : 'Employees can mark attendance using Check In/Check Out'}</div>
+                      <div className="text-[12px] font-medium">Today • {today} {myTodayAtt?.checkIn ? `• ${myTodayAtt.checkIn}${myTodayAtt.checkOut? ` → ${myTodayAtt.checkOut}`:''}` : '• Not checked in'}</div>
+                      <div className="text-[11px] text-muted">{myTodayAtt?.checkIn && !myTodayAtt?.checkOut ? 'Checked in' : myTodayAtt?.checkOut ? 'Checked out' : ''}</div>
                     </div>
                   </div>
                   <div className="flex gap-2">

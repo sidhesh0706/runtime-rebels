@@ -15,7 +15,7 @@ export function Login(){
     if(e) e.preventDefault()
     const ok=login(email.trim(), pass.trim())
     if(!ok) setErr(`Invalid credentials. Try Admin: admin@dayflow.co / ${DEMO_ADMIN_PASSWORD}  or Employee: isha@dayflow.co / ${DEMO_EMPLOYEE_PASSWORD}. If still fails, click Reset Demo below.`)
-    else { setErr(''); nav('/employees') }
+    else { setErr(''); nav('/') }
   }
   function selectAdmin(){ setDemo('admin'); setEmail('admin@dayflow.co'); setPass(DEMO_ADMIN_PASSWORD) }
   function selectEmployee(){ setDemo('employee'); setEmail('isha@dayflow.co'); setPass(DEMO_EMPLOYEE_PASSWORD) }
@@ -106,7 +106,7 @@ export function Signup(){
     if(pass!==confirm){ setErr('Passwords do not match'); return}
     if(pass.length<6){ setErr('Password must be at least 6 characters'); return}
     const ok=signup(name,email,pass,'admin',{companyName: company, phone})
-    if(!ok) setErr('Email already exists'); else nav('/employees')
+    if(!ok) setErr('Email already exists'); else nav('/')
   }
 
   return (
@@ -165,7 +165,6 @@ export function Signup(){
             <div className="flex gap-2">
               <div className="flex-1 py-2 rounded-[10px] border text-[12px] font-medium bg-ink text-white border-ink text-center">HR / Admin</div>
             </div>
-            <p className="text-[11px] text-muted">Only HR/Admin can create a workspace. Employees are added by HR via <span className="font-medium text-ink">Employees → Add Employee</span>.</p>
             {/* login id preview */}
             <div className="rounded-[10px] bg-paper border border-line p-3 flex items-center justify-between">
               <div><div className="text-[11px] font-medium">Your Login ID</div><div className="text-[11px] text-muted">Auto-generated from company + name</div></div>

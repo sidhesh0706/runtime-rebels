@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
-import { useAuth } from '../lib/store'
-import { Search, Eye, Plus, X, Copy, Check } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { useAuth, getMyEmployee } from '../lib/store'
+import { Search, Eye, Plus, X, Copy, Check, User, CalendarCheck, CalendarDays, LogOut, ArrowUpRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 function statusMeta(status:string){
   if(status==='Present') return { dot:'bg-[#1a6b4a]', badge:'bg-[#edf4ef] text-[#1a6b4a] border-[#d6e8db]', label:'Present' }
@@ -44,65 +44,124 @@ export default function Employees(){
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">People • After login the user must land on this page</div>
+          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">People</div>
           <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Employees</h1>
-          <p className="text-[13px] text-muted mt-1">{employees.length} people • Across 6 departments • Cards are clickable → view-only profile {isAdmin? '• HR can add new employees' : '• Contact HR to update your profile'}</p>
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className="text-[11px] text-muted hidden md:block">Click a card → view-only</div>
           {isAdmin && <button onClick={()=>{setShowAdd(true); setAddResult(null); setAddError('')}} className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] bg-ink text-white text-[12px] font-medium hover:bg-black"><Plus className="w-3.5 h-3.5"/>Add Employee</button>}
         </div>
       </div>
 
-      <div className="bg-white border border-line rounded-[12px] p-3 flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[240px] flex items-center gap-2 border border-line rounded-[10px] px-3 bg-paper">
-          <Search className="w-4 h-4 text-muted-2"/>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by name, email, ID, Login ID…" className="flex-1 py-2 bg-transparent outline-none text-[13px] placeholder:text-muted-2"/>
-        </div>
-        <select value={dept} onChange={e=>setDept(e.target.value)} className="px-3 py-2 rounded-[10px] border border-line bg-white text-[13px] font-medium">
-          <option value="All">All departments</option>
-          <option>Engineering</option><option>Design</option><option>Marketing</option><option>Sales</option><option>Human Resources</option><option>Finance</option>
-        </select>
-        <div className="flex items-center gap-1.5 text-[11px] ml-auto">
-          <span className="w-2 h-2 rounded-full bg-[#1a6b4a]"/>Present
-          <span className="w-2 h-2 rounded-full bg-[#2563eb] ml-2"/>Leave
-          <span className="w-2 h-2 rounded-full bg-[#b42318] ml-2"/>Absent
-          <span className="w-2 h-2 rounded-full bg-[#c0900a] ml-2"/>Half-day
-        </div>
-      </div>
-
-      {/* Card grid — as per Excalidraw 3x3 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filtered.map(emp=>{
-          const att=attendance.find(a=>a.employeeId===emp.id && a.date===today)
-          const lv=leaves.find(l=>l.employeeId===emp.id && l.status==='Approved' && l.startDate<=today && l.endDate>=today)
-          const status = lv ? 'On Leave' : att?.status || 'Present'
-          const meta=statusMeta(status)
-          return (
-            <div key={emp.id} onClick={()=>setSelected(emp)} className="group bg-white border border-line rounded-[12px] p-4 hover:border-ink/15 hover:shadow-soft cursor-pointer transition relative">
-              <span className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${meta.dot}`} title={status}/>
-              <div className="flex gap-3">
-                <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full object-cover border border-line"/>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold leading-none truncate">{emp.name}</div>
-                  <div className="text-[11px] text-muted truncate">{emp.role}</div>
-                  <div className="text-[11px] text-muted-2 truncate">{emp.department} • {emp.loginId || emp.id}</div>
-                </div>
-              </div>
-              <div className="mt-3 flex items-center justify-between">
-                <span className={`px-2 py-1 rounded-md text-[11px] font-medium border ${meta.badge}`}>{meta.label}</span>
-                <span className="text-[11px] text-muted flex items-center gap-1 opacity-0 group-hover:opacity-100 transition"><Eye className="w-3 h-3"/>View</span>
-              </div>
-              <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-2">
-                <div className="text-[11px] text-muted truncate">{emp.email}</div>
-                <Link to={`/employees/${emp.id}`} onClick={e=>e.stopPropagation()} className="text-[11px] font-medium px-2 py-1 rounded-md bg-paper border border-line hover:bg-white">Open</Link>
-              </div>
+      {isAdmin ? (
+        <>
+          <div className="bg-white border border-line rounded-[12px] p-3 flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[240px] flex items-center gap-2 border border-line rounded-[10px] px-3 bg-paper">
+              <Search className="w-4 h-4 text-muted-2"/>
+              <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Search by name, email, ID, Login ID…" className="flex-1 py-2 bg-transparent outline-none text-[13px] placeholder:text-muted-2"/>
             </div>
-          )
-        })}
-      </div>
+            <select value={dept} onChange={e=>setDept(e.target.value)} className="px-3 py-2 rounded-[10px] border border-line bg-white text-[13px] font-medium">
+              <option value="All">All departments</option>
+              <option>Engineering</option><option>Design</option><option>Marketing</option><option>Sales</option><option>Human Resources</option><option>Finance</option>
+            </select>
+            <div className="flex items-center gap-1.5 text-[11px] ml-auto">
+              <span className="w-2 h-2 rounded-full bg-[#1a6b4a]"/>Present
+              <span className="w-2 h-2 rounded-full bg-[#2563eb] ml-2"/>Leave
+              <span className="w-2 h-2 rounded-full bg-[#b42318] ml-2"/>Absent
+              <span className="w-2 h-2 rounded-full bg-[#c0900a] ml-2"/>Half-day
+            </div>
+          </div>
 
-      {filtered.length===0 && <div className="bg-white border border-dashed border-line rounded-[12px] p-10 text-center text-[13px] text-muted">No employees match your search.</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {filtered.map(emp=>{
+              const att=attendance.find(a=>a.employeeId===emp.id && a.date===today)
+              const lv=leaves.find(l=>l.employeeId===emp.id && l.status==='Approved' && l.startDate<=today && l.endDate>=today)
+              const status = lv ? 'On Leave' : att?.status || 'Present'
+              const meta=statusMeta(status)
+              return (
+                <div key={emp.id} onClick={()=>setSelected(emp)} className="group bg-white border border-line rounded-[12px] p-4 hover:border-ink/15 hover:shadow-soft cursor-pointer transition relative">
+                  <span className={`absolute top-3 right-3 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${meta.dot}`} title={status}/>
+                  <div className="flex gap-3">
+                    <img src={emp.avatar} alt={emp.name} className="w-10 h-10 rounded-full object-cover border border-line"/>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-semibold leading-none truncate">{emp.name}</div>
+                      <div className="text-[11px] text-muted truncate">{emp.role}</div>
+                      <div className="text-[11px] text-muted-2 truncate">{emp.department} • {emp.loginId || emp.id}</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className={`px-2 py-1 rounded-md text-[11px] font-medium border ${meta.badge}`}>{meta.label}</span>
+                    <span className="text-[11px] text-muted flex items-center gap-1 opacity-0 group-hover:opacity-100 transition"><Eye className="w-3 h-3"/>View</span>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-2">
+                    <div className="text-[11px] text-muted truncate">{emp.email}</div>
+                    <Link to={`/employees/${emp.id}`} onClick={e=>e.stopPropagation()} className="text-[11px] font-medium px-2 py-1 rounded-md bg-paper border border-line hover:bg-white">Open</Link>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {filtered.length===0 && <div className="bg-white border border-dashed border-line rounded-[12px] p-10 text-center text-[13px] text-muted">No employees match your search.</div>}
+        </>
+      ) : (
+        <div className="space-y-5">
+          {(() => {
+            const me = getMyEmployee(user, employees)
+            if(!me) return null
+            const todayStr = new Date().toISOString().slice(0,10)
+            const todayDisplay = new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+            const myAtt = attendance.find(a=>a.employeeId===me.id && a.date===todayStr)
+            const myLeaves = leaves.filter(l=>l.employeeId===me.id)
+            const pending = myLeaves.filter(l=>l.status==='Pending').length
+            const workedMins = (()=>{ if(!myAtt?.checkIn || !myAtt?.checkOut) return null; const [h1,m1]=myAtt.checkIn.split(':').map(Number); const [h2,m2]=myAtt.checkOut.split(':').map(Number); return (h2*60+m2)-(h1*60+m1) })()
+            const workedLabel = workedMins ? `${Math.floor(workedMins/60)}h ${String(workedMins%60).padStart(2,'0')}m` : '—'
+            return (
+              <>
+                <div>
+                  <div className="text-[11px] tracking-[0.08em] font-medium text-muted uppercase">Dashboard</div>
+                  <h2 className="mt-1 text-[18px] font-semibold tracking-tight">Good morning, {me.name.split(' ')[0]}.</h2>
+                  <p className="text-[12px] text-muted">{todayDisplay}</p>
+                </div>
+                <div className="h-px bg-line" />
+                <div>
+                  <div className="text-[10px] tracking-[0.12em] font-medium text-muted uppercase">Today</div>
+                  <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-white border border-line rounded-[12px] p-4">
+                      <div className="text-[10px] tracking-[0.08em] font-medium text-muted uppercase">Attendance</div>
+                      <div className="mt-2 flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${myAtt?.checkIn ? 'bg-[#1a6b4a]' : 'bg-[#b42318]'}`}/><span className="text-[13px] font-medium">{myAtt?.status || 'Not checked in'}</span><span className="text-[11px] text-muted">{myAtt?.checkIn ? `• ${myAtt.checkIn} → ${myAtt.checkOut || '—'}` : ''}</span></div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <div className="bg-paper border border-line rounded-[10px] px-2 py-2 text-center"><div className="text-[10px] text-muted uppercase">Check-in</div><div className="text-[13px] font-semibold tabular-nums">{myAtt?.checkIn || '—:—'}</div></div>
+                        <div className="bg-paper border border-line rounded-[10px] px-2 py-2 text-center"><div className="text-[10px] text-muted uppercase">Check-out</div><div className="text-[13px] font-semibold tabular-nums">{myAtt?.checkOut || '—:—'}</div></div>
+                        <div className="bg-white border border-line rounded-[10px] px-2 py-2 text-center"><div className="text-[10px] text-muted uppercase">Worked</div><div className="text-[13px] font-semibold tabular-nums">{workedLabel}</div></div>
+                      </div>
+                      <Link to="/attendance" className="mt-3 inline-flex text-[11px] font-medium text-ink underline underline-offset-4">View attendance →</Link>
+                    </div>
+                    <div className="bg-white border border-line rounded-[12px] p-4">
+                      <div className="text-[10px] tracking-[0.08em] font-medium text-muted uppercase">Leave</div>
+                      <div className="mt-2 text-[22px] font-semibold leading-none">{pending} <span className="text-[11px] font-normal text-muted">pending</span></div>
+                      <div className="text-[11px] text-muted">{myLeaves.length} total requests • Paid/Sick</div>
+                      <Link to="/time-off" className="mt-3 inline-flex text-[11px] font-medium text-ink underline underline-offset-4">Request leave →</Link>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-white border border-line rounded-[12px] p-4">
+                  <div className="flex items-center justify-between"><h3 className="text-[12px] font-semibold">Recent activity</h3><span className="text-[10px] text-muted">{todayStr}</span></div>
+                  <div className="mt-3 space-y-2">
+                    {myLeaves.slice(0,3).map(l=>(
+                      <div key={l.id} className="flex items-center justify-between border border-line rounded-[10px] px-3 py-2">
+                        <div><div className="text-[12px] font-medium">{l.type} • {l.days}d</div><div className="text-[11px] text-muted">{l.startDate} → {l.endDate}</div></div>
+                        <span className={`text-[10px] px-2 py-1 rounded-full font-medium border ${l.status==='Pending'?'bg-[#fef7e7] border-[#f2e0a6] text-[#8a6d00]':'bg-[#edf4ef] border-[#d6e8db] text-[#1a6b4a]'}`}>{l.status}</span>
+                      </div>
+                    ))}
+                    {myLeaves.length===0 && <div className="text-[11px] text-muted text-center py-3 border border-dashed border-line rounded-[10px]">No recent activity</div>}
+                  </div>
+                </div>
+
+              </>
+            )
+          })()}
+        </div>
+      )}
 
       {/* View-only modal */}
       {selected && (

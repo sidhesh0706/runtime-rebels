@@ -37,12 +37,11 @@ export default function EmployeeProfile(){
   const isOwn = ownId===id
   const canEdit = isOwn // Resume: only own is editable, others view-only
   const canEditPrivate = isOwn || isAdmin // Private: HR can manage any employee's private info
-  const privateVisible = isOwn || isAdmin // Private visible to own or HR
-  const salaryVisible = isAdmin // Salary admin-only (per Important box)
-  const securityVisible = isOwn // Security only for own
+  const privateVisible = isOwn || isAdmin
+  // Salary: per User Type table both view own salary view-only; HR views payroll, Employee views own salary — no edit
+  const salaryVisible = isOwn || isAdmin
+  const securityVisible = isOwn
   const [tab,setTab]=useState<'resume'|'private'|'salary'|'security'>('resume')
-  // When viewing other profile as non-HR, force to resume
-  useEffect(()=>{ if(!privateVisible && tab==='private') setTab('resume'); if(!salaryVisible && tab==='salary') setTab('resume'); if(!securityVisible && tab==='security') setTab('resume') },[id, privateVisible, salaryVisible, securityVisible])
 
   // header edit
   const [editingHeader,setEditingHeader]=useState(false)
@@ -120,7 +119,6 @@ export default function EmployeeProfile(){
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <Link to="/employees" className="inline-flex items-center gap-1.5 text-[12px] font-medium text-muted hover:text-ink"><ArrowLeft className="w-3.5 h-3.5"/>Back to Employees</Link>
-        <div className="text-[11px] text-muted hidden sm:block">My Profile • Form view • {canEdit? 'Editable':'View-only'} • {salaryVisible? 'Salary visible to Admin':'Salary restricted'}</div>
       </div>
 
       <div className="bg-white border border-line rounded-[12px] overflow-hidden">
@@ -169,27 +167,25 @@ export default function EmployeeProfile(){
           <div className="space-y-4">
             <div className="bg-white border border-line rounded-[12px] overflow-hidden">
               <div className="divide-y divide-line">
-                <div className="p-5"><div className="flex items-center justify-between"><h3 className="text-[13px] font-semibold flex items-center gap-2">About {canEdit && <button onClick={()=>{ setTmpAbout(emp.about||''); setEditingAbout(v=>!v)}} className="p-1 rounded-md hover:bg-paper"><Pencil className="w-3.5 h-3.5 text-muted"/></button>}</h3><span className="text-[11px] text-muted hidden md:block">Visible to team</span></div>{editingAbout ? (<><textarea value={tmpAbout} onChange={e=>setTmpAbout(e.target.value)} className="mt-3 w-full min-h-[90px] px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px]"/><div className="mt-2 flex gap-2"><button onClick={()=>{ updateEmployee(emp.id,{about:tmpAbout}); setEditingAbout(false)}} className="px-3 py-1.5 rounded-lg bg-ink text-white text-[12px]">Save</button><button onClick={()=>setEditingAbout(false)} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px]">Cancel</button></div></>) : <p className="text-[13px] leading-relaxed text-muted mt-2">{emp.about}</p>}</div>
+                <div className="p-5"><div className="flex items-center justify-between"><h3 className="text-[13px] font-semibold flex items-center gap-2">About {canEdit && <button onClick={()=>{ setTmpAbout(emp.about||''); setEditingAbout(v=>!v)}} className="p-1 rounded-md hover:bg-paper"><Pencil className="w-3.5 h-3.5 text-muted"/></button>}</h3></div>{editingAbout ? (<><textarea value={tmpAbout} onChange={e=>setTmpAbout(e.target.value)} className="mt-3 w-full min-h-[90px] px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px]"/><div className="mt-2 flex gap-2"><button onClick={()=>{ updateEmployee(emp.id,{about:tmpAbout}); setEditingAbout(false)}} className="px-3 py-1.5 rounded-lg bg-ink text-white text-[12px]">Save</button><button onClick={()=>setEditingAbout(false)} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px]">Cancel</button></div></>) : <p className="text-[13px] leading-relaxed text-muted mt-2">{emp.about}</p>}</div>
                 <div className="p-5"><div className="flex items-center justify-between"><h3 className="text-[13px] font-semibold flex items-center gap-2">What I love about my job {canEdit && <button onClick={()=>{ setTmpLove(emp.loveAboutJob||''); setEditingLove(v=>!v)}} className="p-1 rounded-md hover:bg-paper"><Pencil className="w-3.5 h-3.5 text-muted"/></button>}</h3></div>{editingLove ? (<><textarea value={tmpLove} onChange={e=>setTmpLove(e.target.value)} className="mt-3 w-full min-h-[70px] px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px]"/><div className="mt-2 flex gap-2"><button onClick={()=>{ updateEmployee(emp.id,{loveAboutJob:tmpLove}); setEditingLove(false)}} className="px-3 py-1.5 rounded-lg bg-ink text-white text-[12px]">Save</button><button onClick={()=>setEditingLove(false)} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px]">Cancel</button></div></>) : <p className="text-[13px] leading-relaxed text-muted mt-2">{emp.loveAboutJob}</p>}</div>
                 <div className="p-5"><div className="flex items-center justify-between"><h3 className="text-[13px] font-semibold flex items-center gap-2">My interests and hobbies {canEdit && <button onClick={()=>{ setTmpHobby(emp.interestsDetail||''); setEditingHobby(v=>!v)}} className="p-1 rounded-md hover:bg-paper"><Pencil className="w-3.5 h-3.5 text-muted"/></button>}</h3></div>{editingHobby ? (<><textarea value={tmpHobby} onChange={e=>setTmpHobby(e.target.value)} className="mt-3 w-full min-h-[70px] px-3 py-2 rounded-[10px] border border-line bg-paper text-[13px]"/><div className="mt-2 flex gap-2"><button onClick={()=>{ updateEmployee(emp.id,{interestsDetail:tmpHobby}); setEditingHobby(false)}} className="px-3 py-1.5 rounded-lg bg-ink text-white text-[12px]">Save</button><button onClick={()=>setEditingHobby(false)} className="px-3 py-1.5 rounded-lg border border-line bg-white text-[12px]">Cancel</button></div></>) : <p className="text-[13px] leading-relaxed text-muted mt-2">{emp.interestsDetail}</p>}</div>
               </div>
             </div>
-            <div className="bg-white border border-line rounded-[12px] p-5"><h3 className="text-[13px] font-semibold flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-muted"/>Tenure & Growth</h3><div className="mt-4"><Tenure joinDate={emp.joinDate}/><div className="mt-4 relative border-l-2 border-line ml-2 pl-6 space-y-5"><div className="relative"><span className="absolute -left-[30px] top-1 w-3 h-3 rounded-full bg-ink border-2 border-white shadow"/><div className="text-[11px] font-medium text-muted">{emp.joinDate}</div><div className="text-[13px] font-medium">Joined Dayflow</div><div className="text-[11px] text-muted">{emp.role} • {emp.department}</div></div><div className="relative"><span className="absolute -left-[30px] top-1 w-3 h-3 rounded-full bg-white border-2 border-line"/><div className="text-[11px] font-medium text-muted">{new Date(new Date(emp.joinDate).getTime()+ 365*24*3600*1000*1.5).toISOString().slice(0,10)}</div><div className="text-[13px] font-medium">First promotion</div><div className="text-[11px] text-muted">Recognized for delivery</div></div><div className="relative"><span className="absolute -left-[30px] top-1 w-3 h-3 rounded-full bg-[#1a6b4a] border-2 border-white shadow"/><div className="text-[11px] font-medium text-muted">Today • {today}</div><div className="text-[13px] font-medium">Current • {emp.role}</div><div className="text-[11px] text-muted">Next review in 3 months</div></div></div></div></div>
-            <div className="bg-white border border-line rounded-[12px] p-5"><h3 className="text-[13px] font-semibold flex items-center gap-2"><FileText className="w-4 h-4 text-muted"/>Document Vault</h3><div className="mt-3 space-y-2">{docs.map((d:any)=>(<div key={d.name} className="flex items-center justify-between border border-line rounded-[10px] px-3 py-2.5 bg-paper"><div><div className="text-[12px] font-medium">{d.name}</div><div className="text-[11px] text-muted">{d.type} • {d.date}</div></div><button className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-white border border-line">View</button></div>))}{canEdit && <label className="mt-2 flex items-center justify-center gap-2 w-full py-3 rounded-[10px] border border-dashed border-line bg-paper text-[12px] font-medium cursor-pointer hover:bg-white"><Plus className="w-4 h-4"/>Upload document<input type="file" className="hidden" onChange={e=>{ const f=e.target.files?.[0]; if(f) updateEmployee(emp.id,{documents:[...docs, {name:f.name, type:'Upload', date:new Date().toISOString().slice(0,10)}]}) }}/></label>}</div></div>
           </div>
           <div className="space-y-4">
             <div className="bg-white border border-line rounded-[12px] p-5"><div className="flex items-center justify-between"><h3 className="text-[13px] font-semibold flex items-center gap-2"><Award className="w-4 h-4 text-muted"/>Skills</h3>{canEdit && <button onClick={()=>setShowAddSkill(true)} className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-paper border border-line hover:bg-white inline-flex items-center gap-1"><Plus className="w-3 h-3"/>Add Skills</button>}</div><div className="mt-3 space-y-2.5">{(emp.skills||[]).map((s:any)=>(<div key={s} className="flex items-center justify-between border border-line rounded-[10px] px-3 py-2.5 bg-paper"><div><div className="text-[12px] font-medium">{s}</div><div className="text-[11px] text-muted">{(endorsements as any)[s]??0} endorsements • peer validated</div></div><div className="flex items-center gap-1"><Star className="w-3.5 h-3.5 text-[#c0900a] fill-[#c0900a]"/><span className="text-[11px] font-semibold">{(endorsements as any)[s]??0}</span>{canEdit && <button onClick={()=> updateEmployee(emp.id,{skills:(emp.skills||[]).filter(x=>x!==s)})} className="ml-1 p-1 rounded hover:bg-white border border-transparent hover:border-line"><Trash2 className="w-3 h-3 text-muted"/></button>}</div></div>))}</div></div>
             <div className="bg-white border border-line rounded-[12px] p-5"><div className="flex items-center justify-between"><h3 className="text-[13px] font-semibold flex items-center gap-2"><Award className="w-4 h-4 text-muted"/>Certification</h3>{canEdit && <button onClick={()=>setShowAddCert(true)} className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-paper border border-line inline-flex items-center gap-1"><Plus className="w-3 h-3"/>Add</button>}</div><div className="mt-3 flex flex-wrap gap-1.5">{(emp.certifications||[]).map((c:any)=><span key={c} className="px-2.5 py-1 rounded-lg bg-paper border border-line text-[12px] flex items-center gap-1">{c} {canEdit && <button onClick={()=> updateEmployee(emp.id,{certifications:(emp.certifications||[]).filter(x=>x!==c)})}><X className="w-3 h-3 text-muted"/></button>}</span>)}</div></div>
-            <Streak attendance={attendance} employeeId={emp.id}/>
-            <div className="bg-white border border-line rounded-[12px] p-5"><h3 className="text-[13px] font-semibold flex items-center gap-2"><Users className="w-4 h-4 text-muted"/>Manager & Team</h3><div className="mt-3 border border-line rounded-[10px] p-3 bg-paper"><div className="text-[12px] font-medium">{emp.manager}</div><div className="text-[11px] text-muted">Reports to • {emp.department}</div><div className="mt-2 flex -space-x-1">{employees.filter(e=>e.department===emp.department).slice(0,5).map(m=> <img key={m.id} src={m.avatar} className="w-7 h-7 rounded-full border-2 border-white object-cover"/>)}<span className="w-7 h-7 rounded-full bg-ink text-white text-[10px] grid place-items-center border-2 border-white">+{employees.filter(e=>e.department===emp.department).length-5}</span></div></div><div className="mt-3 text-[11px] leading-relaxed text-muted bg-[#edf4ef] border border-[#d6e8db] rounded-[10px] p-3"><span className="font-medium text-ink">Dayflow Brief:</span> {emp.department} at {useMemo(()=>{ const deptEmps=employees.filter(e=>e.department===emp.department); const present=attendance.filter(a=>a.date===today && deptEmps.some(x=>x.id===a.employeeId) && ['Present','Late','Half-day'].includes(a.status)).length; return Math.round((present/deptEmps.length)*100) },[attendance,employees,emp.department,today])}% availability today.</div></div>
-            <div className="bg-white border border-line rounded-[12px] p-5"><h3 className="text-[13px] font-semibold">Attendance snapshot</h3><div className="mt-3 text-[12px] leading-relaxed bg-paper border border-line rounded-[10px] p-3">Today: <span className="font-medium">{status}</span> • {att?.checkIn || '—'} → {att?.checkOut || '—'} • {att?.hours ?? 8}h</div><Link to="/attendance" className="mt-3 inline-flex px-3 py-1.5 rounded-lg border border-line bg-white text-[12px] font-medium">Open Attendance</Link></div>
           </div>
         </div>
       )}
 
-      {tab==='private' && (
+      {tab==='private' && !privateVisible && (
+        <div className="bg-white border border-line rounded-[12px] p-8 text-center"><div className="w-10 h-10 rounded-full bg-paper border border-line grid place-items-center mx-auto"><Lock className="w-5 h-5 text-muted"/></div><div className="text-[13px] font-medium mt-3">Private Information</div><div className="text-[12px] text-muted mt-1">Restricted</div></div>
+      )}
+      {tab==='private' && privateVisible && (
         <div className="bg-white border border-line rounded-[12px]">
-          <div className="px-5 py-4 border-b border-line flex items-center justify-between"><div><h3 className="text-[13px] font-semibold">Private Information</h3><p className="text-[11px] text-muted">Sensitive — editable by you & HR. {canEditPrivate? 'You can save changes.': 'View-only.'} • As per Excalidraw right panel</p></div>{canEditPrivate && <button onClick={()=>{ updateEmployee(emp.id,{ dob:pDob, address:pAddr, maritalStatus:pMarital as any, emergencyContact:pEmerg, bankAccount:pBank, bankName:pBankName, ifsc:pIfsc, gender:pGender as any, uan:pUan, nationality:pNation }); }} className="px-4 py-2 rounded-[10px] bg-ink text-white text-[12px] font-medium inline-flex items-center gap-1"><Check className="w-4 h-4"/>Save</button>}</div>
+          <div className="px-5 py-4 border-b border-line flex items-center justify-between"><div><h3 className="text-[13px] font-semibold">Private Information</h3></div>{canEditPrivate && <button onClick={()=>{ updateEmployee(emp.id,{ dob:pDob, address:pAddr, maritalStatus:pMarital as any, emergencyContact:pEmerg, bankAccount:pBank, bankName:pBankName, ifsc:pIfsc, gender:pGender as any, uan:pUan, nationality:pNation }); }} className="px-4 py-2 rounded-[10px] bg-ink text-white text-[12px] font-medium inline-flex items-center gap-1"><Check className="w-4 h-4"/>Save</button>}</div>
           <div className="p-5 grid md:grid-cols-2 gap-4">
             <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="text-[11px] text-muted">Full Name</div><div className="text-[13px] font-medium mt-1">{emp.name}</div></div>
             <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="text-[11px] text-muted">Date of Birth</div>{canEditPrivate? <input type="date" value={pDob} onChange={e=>setPDob(e.target.value)} className="mt-1 w-full px-2 py-1.5 rounded-lg border border-line bg-white text-[12px]"/>:<div className="text-[13px] font-medium mt-1">{emp.dob}</div>}</div>
@@ -209,7 +205,6 @@ export default function EmployeeProfile(){
             <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="text-[11px] text-muted">Emp Code</div><div className="text-[13px] font-mono font-medium mt-1">{emp.id}</div></div>
             <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="text-[11px] text-muted">Emergency Contact</div>{canEditPrivate? <input value={pEmerg} onChange={e=>setPEmerg(e.target.value)} className="mt-1 w-full px-2 py-1.5 rounded-lg border border-line bg-white text-[12px]"/>:<div className="text-[13px] font-medium mt-1">{emp.emergencyContact}</div>}</div>
           </div>
-          <div className="px-5 pb-5"><div className="rounded-[10px] bg-[#fdf2f2] border border-[#f0d6d6] p-3 text-[11px] leading-relaxed text-[#7a2a2a]">This section is protected. Employees can view/edit own Private Info; HR/Admin can edit all. Salary Info remains admin-only.</div></div>
         </div>
       )}
 
@@ -217,15 +212,15 @@ export default function EmployeeProfile(){
         salaryVisible ? (
           <div className="space-y-4">
             <div className="bg-white border border-line rounded-[12px] overflow-hidden">
-              <div className="px-5 py-4 border-b border-line flex items-center justify-between"><h3 className="text-[13px] font-semibold">Salary Information</h3><button onClick={saveSalary} className="px-4 py-1.5 rounded-[10px] bg-ink text-white text-[12px] font-medium inline-flex items-center gap-1"><Check className="w-3.5 h-3.5"/>Save structure</button></div>
-              {/* Wage header — exact structure from Important */}
+              <div className="px-5 py-4 border-b border-line flex items-center justify-between"><h3 className="text-[13px] font-semibold">Salary Information</h3><span className="text-[11px] px-2.5 py-1 rounded-full bg-paper border border-line text-muted">View only • HR views payroll details</span></div>
+              {/* Wage header — exact structure from Important — view only per User Type table */}
               <div className="p-5">
                 <div className="text-[11px] tracking-[0.08em] font-medium text-muted uppercase">Wage Type</div>
                 <div className="mt-1 inline-flex px-3 py-1.5 rounded-full bg-ink text-white text-[11px] font-medium">Fixed wage</div>
                 <div className="mt-4 grid md:grid-cols-3 gap-4">
-                  <div className="border border-line rounded-[10px] p-4 bg-paper"><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">Month Wage</div><div className="mt-2 flex items-center gap-2"><input type="number" value={mWage} onChange={e=>handleWageChange(Number(e.target.value)||0)} className="flex-1 px-3 py-2 rounded-[10px] border border-line bg-white text-[15px] font-semibold"/><span className="text-[11px] text-muted">/ Month</span></div></div>
-                  <div className="border border-line rounded-[10px] p-4 bg-paper"><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">No. of working days in a week</div><div className="mt-2 flex items-center gap-2"><input type="number" value={wDaysWeek} onChange={e=>setWDaysWeek(Number(e.target.value)||0)} className="w-20 px-3 py-2 rounded-[10px] border border-line bg-white text-[15px] font-semibold"/><span className="text-[11px] text-muted">/ {wDaysWeek*4} days / month</span></div></div>
-                  <div className="border border-line rounded-[10px] p-4 bg-paper"><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">Break Time</div><div className="mt-2 flex items-center gap-2"><input type="number" step="0.5" value={breakHrs} onChange={e=>setBreakHrs(Number(e.target.value)||0)} className="w-20 px-3 py-2 rounded-[10px] border border-line bg-white text-[15px] font-semibold"/><span className="text-[11px] text-muted">/ hrs</span></div></div>
+                  <div className="border border-line rounded-[10px] p-4 bg-paper"><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">Month Wage</div><div className="mt-2 flex items-center gap-2"><div className="flex-1 px-3 py-2 rounded-[10px] border border-line bg-white text-[15px] font-semibold tabular-nums">{formatCurrency(mWage)}</div><span className="text-[11px] text-muted">/ Month</span></div></div>
+                  <div className="border border-line rounded-[10px] p-4 bg-paper"><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">No. of working days in a week</div><div className="mt-2 flex items-center gap-2"><div className="w-20 px-3 py-2 rounded-[10px] border border-line bg-white text-[15px] font-semibold text-center">{wDaysWeek}</div><span className="text-[11px] text-muted">/ {wDaysWeek*4} days / month</span></div></div>
+                  <div className="border border-line rounded-[10px] p-4 bg-paper"><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">Break Time</div><div className="mt-2 flex items-center gap-2"><div className="w-20 px-3 py-2 rounded-[10px] border border-line bg-white text-[15px] font-semibold text-center">{breakHrs}</div><span className="text-[11px] text-muted">/ hrs</span></div></div>
                 </div>
                 <div className="mt-3 grid md:grid-cols-2 gap-4">
                   <div className="border border-line rounded-[10px] p-4 bg-paper flex items-center justify-between"><div><div className="text-[11px] text-muted uppercase tracking-[0.06em] font-medium">Yearly wage</div><div className="text-[15px] font-semibold mt-1">{formatCurrency(yWage)}</div></div><span className="text-[11px] text-muted">/ Yearly • Auto = Monthly × 12</span></div>
@@ -233,51 +228,41 @@ export default function EmployeeProfile(){
                 </div>
               </div>
 
-              <div className="px-5 pb-5 grid lg:grid-cols-[1.35fr_0.75fr] gap-6">
+              <div className="px-5 pb-5 grid lg:grid-cols-[1.35fr_0.75fr] gap-5 items-start">
                 <div>
-                  <div className="flex items-center justify-between"><h4 className="text-[12px] font-semibold">Salary Components</h4><span className="text-[11px] text-muted">Section where users can define salary structure components</span></div>
-                  <div className="text-[11px] text-muted mt-1">Each component should include: Basic, House Rent, Standard Allowance, Performance Bonus, Leave Travel Allowance, Fixed Allowance. Computation Type: Fixed or Percentage.</div>
-                  <div className="mt-3 border border-line rounded-[10px] overflow-hidden">
+                  <h4 className="text-[12px] font-semibold">Salary Components</h4>
+                  <div className="mt-3 border border-line rounded-[10px] overflow-hidden bg-white">
                     <div className="hidden md:grid grid-cols-[1.3fr_0.8fr_0.6fr_0.7fr] gap-0 bg-paper border-b border-line text-[11px] tracking-[0.06em] font-medium text-muted uppercase px-3 py-2.5"><div>Component</div><div>Type</div><div>Value</div><div className="text-right">Amount</div></div>
-                    {comps.map((c:any,idx:number)=>(
-                      <div key={c.id} className="grid md:grid-cols-[1.3fr_0.8fr_0.6fr_0.7fr] gap-2 md:gap-0 px-3 py-3 items-center border-b border-line last:border-0 text-[13px]">
-                        <div className="font-medium">{c.name}</div>
-                        <select value={c.type} onChange={e=>updateComp(idx,'type',e.target.value)} className="px-2 py-1.5 rounded-lg border border-line bg-paper text-[11px]"><option>Fixed</option><option>Percent of Wage</option><option>Percent of Basic</option></select>
-                        <div className="flex items-center gap-1"><input type="number" step="0.1" value={c.value} onChange={e=>updateComp(idx,'value',e.target.value)} className="w-20 px-2 py-1.5 rounded-lg border border-line bg-white text-[11px] font-mono"/><span className="text-[11px] text-muted">{c.type==='Fixed'?'INR':'%'}</span></div>
-                        <div className="text-right font-medium tabular-nums">{formatCurrency(c.computed)} <span className="text-[11px] text-muted">/ month</span></div>
+                    {comps.map((c:any)=>(
+                      <div key={c.id} className="grid md:grid-cols-[1.3fr_0.8fr_0.6fr_0.7fr] gap-2 md:gap-0 px-3 py-2.5 items-center border-b border-line last:border-0 text-[13px] min-h-[56px]">
+                        <div className="font-medium leading-tight">{c.name}</div>
+                        <div className="h-7 px-2 rounded-lg border border-line bg-paper text-[11px] leading-none flex items-center">{c.type}</div>
+                        <div className="flex items-center gap-1.5"><div className="w-[72px] h-7 px-2 rounded-lg border border-line bg-white text-[11px] font-mono leading-none flex items-center">{c.value}</div><span className="text-[11px] text-muted w-6">%</span></div>
+                        <div className="text-right font-medium tabular-nums leading-tight">{formatCurrency(c.computed)}<span className="text-[11px] text-muted font-normal"> / month</span></div>
                       </div>
                     ))}
                     <div className="bg-paper px-3 py-2.5 flex justify-between text-[12px]"><span className="font-medium">Subtotal components</span><span className="font-semibold">{formatCurrency(total)}</span></div>
                   </div>
-                  <div className="mt-3 text-[11px] leading-relaxed bg-paper border border-line rounded-[10px] p-3">
-                    <div className="font-medium">Value Percentage field (e.g., 50% for Basic, 50% of Basic for HRA, Standard 19.1%, Performance 8.33%, LTA 8.33%, Fixed remainder)</div>
-                    <div className="text-muted mt-1">Salary component values should auto-update when the wage amount changes. The total of all components should not exceed the defined wage.</div>
-                  </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="border border-line rounded-[10px] overflow-hidden bg-white">
-                    <div className="px-3 py-2.5 bg-paper border-b border-line"><h4 className="text-[11px] font-semibold uppercase tracking-[0.06em]">Provident Fund (PF) Contribution</h4></div>
-                    <div className="p-3 space-y-3">
-                      <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="flex justify-between items-center"><span className="text-[12px] font-medium">Employer</span><span className="text-[11px] text-muted">{pfEmpRate}% of Basic</span></div><div className="mt-1 flex items-center gap-2"><input type="number" value={pfEmpRate} onChange={e=>setPfEmpRate(Number(e.target.value)||0)} className="w-16 px-2 py-1 rounded-lg border border-line bg-white text-[12px]"/> <span className="text-[11px] text-muted">% × {formatCurrency(comps.find((c:any)=>c.name==='Basic Salary')?.computed||0)} = {formatCurrency(Math.round((comps.find((c:any)=>c.name==='Basic Salary')?.computed||0)*pfEmpRate/100))} / month</span></div><div className="text-[10px] text-muted mt-1">PF calculated based on the basic salary</div></div>
-                      <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="flex justify-between items-center"><span className="text-[12px] font-medium">Employee</span><span className="text-[11px] text-muted">{pfEeRate}% of Basic</span></div><div className="mt-1 flex items-center gap-2"><input type="number" value={pfEeRate} onChange={e=>setPfEeRate(Number(e.target.value)||0)} className="w-16 px-2 py-1 rounded-lg border border-line bg-white text-[12px]"/> <span className="text-[11px] text-muted">% × Basic = {formatCurrency(Math.round((comps.find((c:any)=>c.name==='Basic Salary')?.computed||0)*pfEeRate/100))} / month</span></div></div>
+                    <div className="px-3.5 py-2.5 bg-paper border-b border-line"><h4 className="text-[11px] font-semibold uppercase tracking-[0.06em]">Provident Fund (PF) Contribution</h4></div>
+                    <div className="p-3 space-y-2.5">
+                      <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="flex justify-between items-center gap-2"><span className="text-[12px] font-medium">Employer</span><span className="text-[11px] text-muted whitespace-nowrap">{pfEmpRate}% of Basic</span></div><div className="mt-2 flex items-center gap-2"><div className="w-[64px] h-7 px-2 rounded-lg border border-line bg-white text-[12px] text-center flex items-center justify-center">{pfEmpRate}</div> <span className="text-[11px] text-muted leading-tight flex-1">% × {formatCurrency(comps.find((c:any)=>c.name==='Basic Salary')?.computed||0)} = {formatCurrency(Math.round((comps.find((c:any)=>c.name==='Basic Salary')?.computed||0)*pfEmpRate/100))} / month</span></div><div className="text-[10px] text-muted mt-1.5 leading-none">PF calculated based on the basic salary</div></div>
+                      <div className="border border-line rounded-[10px] p-3 bg-paper"><div className="flex justify-between items-center gap-2"><span className="text-[12px] font-medium">Employee</span><span className="text-[11px] text-muted whitespace-nowrap">{pfEeRate}% of Basic</span></div><div className="mt-2 flex items-center gap-2"><div className="w-[64px] h-7 px-2 rounded-lg border border-line bg-white text-[12px] text-center flex items-center justify-center">{pfEeRate}</div> <span className="text-[11px] text-muted leading-tight flex-1">% × Basic = {formatCurrency(Math.round((comps.find((c:any)=>c.name==='Basic Salary')?.computed||0)*pfEeRate/100))} / month</span></div></div>
                     </div>
                   </div>
                   <div className="border border-line rounded-[10px] overflow-hidden bg-white">
-                    <div className="px-3 py-2.5 bg-paper border-b border-line"><h4 className="text-[11px] font-semibold uppercase tracking-[0.06em]">Tax Deductions</h4></div>
-                    <div className="p-3"><div className="border border-line rounded-[10px] p-3 bg-paper"><div className="text-[12px] font-medium">Professional Tax</div><div className="mt-1 flex items-center gap-2"><input type="number" value={ptax} onChange={e=>setPtax(Number(e.target.value)||0)} className="w-20 px-2 py-1 rounded-lg border border-line bg-white text-[12px]"/><span className="text-[11px] text-muted">₹ / month • Deducted from gross salary</span></div></div></div>
+                    <div className="px-3.5 py-2.5 bg-paper border-b border-line"><h4 className="text-[11px] font-semibold uppercase tracking-[0.06em]">Tax Deductions</h4></div>
+                    <div className="p-3"><div className="border border-line rounded-[10px] p-3 bg-paper"><div className="text-[12px] font-medium">Professional Tax</div><div className="mt-2 flex items-center gap-2"><div className="w-[72px] h-7 px-2 rounded-lg border border-line bg-white text-[12px] text-center flex items-center justify-center">{ptax}</div><span className="text-[11px] text-muted leading-tight">₹ / month • Deducted from gross salary</span></div></div></div>
                   </div>
-                  <div className="rounded-[10px] bg-[#edf4ef] border border-[#d6e8db] p-4">
-                    <div className="text-[11px] font-semibold tracking-[0.06em] uppercase">Important — Automatic Calculation</div>
-                    <div className="text-[11px] leading-relaxed text-muted mt-2">The system should calculate each component amount based on the employee's defined wage.<br/><br/>Example:<br/>If Wage = ₹50,000 and Basic = 50% of wage, then Basic = ₹25,000.<br/>If HRA = 50% of Basic, then HRA = ₹12,500.<br/><br/>Each field for configuration (e.g., PF rate 12%), and Professional Tax 200.<br/>Total components must not exceed wage. {exceeds && <span className="text-[#7a2a2a] font-medium">Currently exceeds — adjust percentages.</span>}</div>
-                  </div>
-                  <div className="rounded-[10px] border border-line bg-ink text-white p-4 flex items-center justify-between"><div><div className="text-[11px] tracking-[0.08em] font-medium text-white/60 uppercase">Payroll sync</div><div className="text-[13px] font-medium mt-1">Payroll net {payroll? formatCurrency(payroll.net):''} • Syncs with PostgreSQL payroll table</div></div></div>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="bg-white border border-line rounded-[12px] p-10 text-center"><div className="w-10 h-10 rounded-full bg-paper border border-line grid place-items-center mx-auto"><Lock className="w-5 h-5 text-muted"/></div><div className="text-[13px] font-medium mt-3">Restricted</div><div className="text-[12px] text-muted mt-1">Salary Info tab should only be visible to Admin. Your role is {user?.role}.</div></div>
+          <div className="bg-white border border-line rounded-[12px] p-10 text-center"><div className="w-10 h-10 rounded-full bg-paper border border-line grid place-items-center mx-auto"><Lock className="w-5 h-5 text-muted"/></div><div className="text-[13px] font-medium mt-3">Restricted</div></div>
         )
       )}
 
@@ -285,8 +270,7 @@ export default function EmployeeProfile(){
         isOwn || isAdmin ? (
         <div className="bg-white border border-line rounded-[12px] overflow-hidden">
           <div className="px-5 py-4 border-b border-line">
-            <h3 className="text-[13px] font-semibold flex items-center gap-2"><Shield className="w-4 h-4"/>Security & Settings</h3>
-            <p className="text-[11px] text-muted mt-1">Manage account credentials and security. Every employee has their own security record — editable only by the owner (and HR/Admin via backend).</p>
+            <h3 className="text-[13px] font-semibold flex items-center gap-2"><Shield className="w-4 h-4"/>Security</h3>
           </div>
           <div className="p-5 space-y-5">
             {/* Account fields - per reference: Login ID / Employee ID / Account email */}
@@ -305,7 +289,6 @@ export default function EmployeeProfile(){
 
             <div className="border-t border-line pt-5">
               <h4 className="text-[11px] font-semibold tracking-[0.06em] uppercase text-muted">Change Password</h4>
-              <p className="text-[11px] text-muted mt-1">Only the owner ({isOwn? 'you' : emp.name}) or HR/Admin can change this password. Employee A cannot change B’s password — enforced server-side.</p>
               <div className="mt-3 grid md:grid-cols-3 gap-3">
                 <div><label className="text-[11px] font-medium">Current Password</label><input value={secCurr} onChange={e=>setSecCurr(e.target.value)} placeholder="Current password" type="password" className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line bg-white text-[12px] outline-none focus:border-ink"/></div>
                 <div><label className="text-[11px] font-medium">New Password</label><input value={secNew} onChange={e=>setSecNew(e.target.value)} placeholder="Min 6 characters" type="password" className="mt-1 w-full px-3 py-2 rounded-[10px] border border-line bg-white text-[12px] outline-none focus:border-ink"/></div>
@@ -318,13 +301,10 @@ export default function EmployeeProfile(){
                   if(!secCurr || !secNew || !secConfirm){ setSecMsg({type:'error', text:'Fill all fields'}); return }
                   if(secNew!==secConfirm){ setSecMsg({type:'error', text:'New and confirm do not match'}); return }
                   const ok=updateSecurity(emp.id, secCurr, secNew)
-                  if(!ok) setSecMsg({type:'error', text:'Failed — check current password / permissions. Only owner or admin can update.'})
+                  if(!ok) setSecMsg({type:'error', text:'Failed — check current password / permissions.'})
                   else { setSecMsg({type:'success', text:'Password updated successfully'}); setSecCurr(''); setSecNew(''); setSecConfirm('') }
                 }} className="px-5 py-2 rounded-[10px] bg-ink text-white text-[12px] font-medium hover:bg-black">Update Password</button>
                 <button onClick={()=>{setSecCurr(''); setSecNew(''); setSecConfirm(''); setSecMsg(null)}} className="px-4 py-2 rounded-[10px] border border-line bg-white text-[12px] font-medium">Clear</button>
-              </div>
-              <div className="mt-3 text-[11px] leading-relaxed text-muted bg-paper border border-line rounded-[10px] p-3">
-                Login ID <span className="font-mono font-medium text-ink">{emp.loginId}</span> is system-generated. Temp password was auto-generated on HR creation; employee must change it on first login via this Security tab. Backend RLS ensures <span className="font-medium text-ink">Employee A cannot update B’s password</span> — server returns 403.
               </div>
             </div>
 
@@ -335,7 +315,7 @@ export default function EmployeeProfile(){
           </div>
         </div>
         ) : (
-        <div className="bg-white border border-line rounded-[12px] p-8 text-center"><div className="w-10 h-10 rounded-full bg-paper border border-line grid place-items-center mx-auto"><Lock className="w-5 h-5 text-muted"/></div><div className="text-[13px] font-medium mt-3">Security — Private</div><div className="text-[12px] text-muted mt-1">Only the owner can view and manage security settings. Employee A cannot view or edit Employee B’s security information — enforced server-side (403).</div><div className="text-[11px] text-muted mt-2">You are viewing <span className="font-medium text-ink">{emp.name}</span> as <span className="font-medium text-ink">{user?.name} ({user?.role})</span>.</div></div>
+        <div className="bg-white border border-line rounded-[12px] p-8 text-center"><div className="w-10 h-10 rounded-full bg-paper border border-line grid place-items-center mx-auto"><Lock className="w-5 h-5 text-muted"/></div><div className="text-[13px] font-medium mt-3">Security</div><div className="text-[12px] text-muted mt-1">Restricted</div></div>
         )
       )}
 

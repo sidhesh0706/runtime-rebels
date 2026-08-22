@@ -65,21 +65,23 @@ export default function Leave(){
     return { emp, overlapping, avail, total:deptEmps.length }
   }
 
-  // employee calendar data: collect approved leave dates
-  const myLeaveDates=new Set<string>()
-  myLeaves.filter(l=>l.status==='Approved').forEach(l=>{
-    let cur=new Date(l.startDate); const endD=new Date(l.endDate)
-    while(cur<=endD){ myLeaveDates.add(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1)}
-  })
-  const leaveDatesArray=Array.from(myLeaveDates)
+  // employee calendar data: collect approved leave dates — filtered by subTab for correct highlighting
+  const myLeaveDatesByType = (type: 'paid'|'sick')=>{
+    const set=new Set<string>()
+    myLeaves.filter(l=>l.status==='Approved' && (type==='paid' ? l.type==='Paid' : l.type==='Sick')).forEach(l=>{
+      let cur=new Date(l.startDate); const endD=new Date(l.endDate)
+      while(cur<=endD){ set.add(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1)}
+    })
+    return Array.from(set)
+  }
+  const leaveDatesArray = myLeaveDatesByType(subTab)
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">{isAdmin? 'For Admin & HR Officer — Reject & Approve buttons':'For Employees View'}</div>
+          <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Time Off</div>
           <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Time Off</h1>
-          <p className="text-[13px] text-muted mt-1">{isAdmin? 'Employees can only see own records. Admins & HR Officers can view all & approve/reject.':'Your balance, calendar and requests'}</p>
         </div>
         {!isAdmin && <button onClick={()=>setShowReq(true)} className="px-4 py-2 rounded-[10px] bg-ink text-white text-[12px] font-medium inline-flex items-center gap-1.5"><Plus className="w-4 h-4"/>Request Time Off</button>}
       </div>
@@ -98,12 +100,12 @@ export default function Leave(){
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." className="py-2 bg-transparent outline-none text-[12px] w-40"/>
               </div>
             </div>
-          ) : (
+          ) : activeTab==='timeoff' ? (
             <div className="flex items-center gap-1 p-1 rounded-[10px] bg-paper border border-line mr-1">
               <button onClick={()=>setSubTab('paid')} className={`px-3 py-1.5 rounded-lg text-[12px] font-medium ${subTab==='paid'?'bg-white border border-line shadow-sm':'text-muted'}`}>Paid Time Off</button>
               <button onClick={()=>setSubTab('sick')} className={`px-3 py-1.5 rounded-lg text-[12px] font-medium ${subTab==='sick'?'bg-white border border-line shadow-sm':'text-muted'}`}>Sick Time Off</button>
             </div>
-          )}
+          ) : null}
         </div>
 
         {isAdmin ? (
@@ -152,11 +154,42 @@ export default function Leave(){
           ) : (
             <div className="p-5">
               <h3 className="text-[13px] font-semibold">Allocation</h3>
-              <p className="text-[12px] text-muted mt-1">Annual accrual overview per employee. Paid vs Sick allocation.</p>
+              <p className="text-[12px] text-muted mt-1">Annual accrual overview <span className="font-medium text-ink">per employee</span> — HR view for all {employees.length} employees. Paid vs Sick allocation.</p>
+              <div className="mt-4 overflow-auto">
+                <table className="w-full text-[12px] min-w-[640px]">
+                  <thead className="bg-paper text-[11px] tracking-[0.06em] font-medium text-muted uppercase border-y border-line">
+                    <tr><th className="text-left px-3 py-2">Employee</th><th className="text-left px-3 py-2">Paid</th><th className="text-left px-3 py-2">Sick</th><th className="text-left px-3 py-2">Unpaid</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {employees.map(emp=>{
+                      const empLeaves=leaves.filter(l=>l.employeeId===emp.id)
+                      const paidUsed=empLeaves.filter(l=>l.type==='Paid' && l.status==='Approved').reduce((a,b)=>a+b.days,0)
+                      const sickUsed=empLeaves.filter(l=>l.type==='Sick' && l.status==='Approved').reduce((a,b)=>a+b.days,0)
+                      const unpaidUsed=empLeaves.filter(l=>l.type==='Unpaid' && l.status==='Approved').reduce((a,b)=>a+b.days,0)
+                      return (
+                        <tr key={emp.id} className="hover:bg-paper/40">
+                          <td className="px-3 py-2.5 flex items-center gap-2"><img src={emp.avatar} className="w-6 h-6 rounded-full"/><span className="font-medium">{emp.name}</span><span className="text-[11px] text-muted hidden md:inline">• {emp.department}</span></td>
+                          <td className="px-3 py-2.5"><span className="font-medium">{24-paidUsed}</span><span className="text-muted"> / 24</span><span className="text-[11px] text-muted ml-1">({paidUsed} used)</span><div className="mt-1 h-1 bg-paper border border-line rounded-full overflow-hidden"><div className="h-full bg-ink" style={{width: `${((24-paidUsed)/24)*100}%`}}/></div></td>
+                          <td className="px-3 py-2.5"><span className="font-medium">{12-sickUsed}</span><span className="text-muted"> / 12</span><span className="text-[11px] text-muted ml-1">({sickUsed} used)</span><div className="mt-1 h-1 bg-paper border border-line rounded-full overflow-hidden"><div className="h-full bg-ink" style={{width: `${((12-sickUsed)/12)*100}%`}}/></div></td>
+                          <td className="px-3 py-2.5"><span className="font-medium">{30-unpaidUsed}</span><span className="text-muted"> / 30</span></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-3 text-[11px] text-muted">HR sees per-employee allocation (not just own). Employee view still shows only own 3 cards.</div>
+            </div>
+          )
+        ) : (
+          activeTab==='allocation' ? (
+            <div className="p-5">
+              <h3 className="text-[13px] font-semibold">Allocation</h3>
+              <p className="text-[12px] text-muted mt-1">Your personal accrual — Paid vs Sick.</p>
               <div className="mt-4 grid md:grid-cols-3 gap-3">
                 {[ {type:'Paid Time Off', total:24, used: myLeaves.filter(l=>l.type==='Paid' && l.status==='Approved').reduce((a,b)=>a+b.days,0)},
                    {type:'Sick Leave', total:12, used: myLeaves.filter(l=>l.type==='Sick' && l.status==='Approved').reduce((a,b)=>a+b.days,0)},
-                   {type:'Unpaid', total:30, used: myLeaves.filter(l=>l.type==='Unpaid').reduce((a,b)=>a+b.days,0)}
+                   {type:'Unpaid', total:30, used: myLeaves.filter(l=>l.type==='Unpaid' && l.status==='Approved').reduce((a,b)=>a+b.days,0)}
                 ].map(b=>(
                   <div key={b.type} className="border border-line rounded-[10px] p-4 bg-paper">
                     <div className="text-[12px] font-medium">{b.type}</div>
@@ -166,10 +199,9 @@ export default function Leave(){
                   </div>
                 ))}
               </div>
+              <div className="mt-4 rounded-[10px] bg-paper border border-line p-3 text-[11px] leading-relaxed text-muted">Validity: Jan 01 → Dec 31 • {myLeaves.filter(l=>l.status==='Approved').length} approved requests</div>
             </div>
-          )
-        ) : (
-          // Employee view
+          ) : (
           <div className="p-4">
             <div className="grid md:grid-cols-2 gap-3">
               <div className="border border-line rounded-[12px] p-4 bg-paper">
@@ -216,6 +248,7 @@ export default function Leave(){
               <span className="font-medium text-ink">Time-Off Types:</span> Paid Time Off • Sick Leave • Unpaid Leaves. Paid requires approval; Sick needs certificate attachment.
             </div>
           </div>
+          )
         )}
       </div>
 

@@ -12,11 +12,17 @@ import Pulse from './pages/Pulse'
 import Guard from './pages/Guard'
 import Ai from './pages/Ai'
 import Settings from './pages/Settings'
+import { AdminDashboard, EmployeeDashboard } from './pages/Dashboard'
 
 function Protected({children}:{children:ReactNode}){
   const { user } = useAuth()
   if(!user) return <Navigate to="/login" replace/>
   return <Layout>{children}</Layout>
+}
+function DashboardSwitch(){
+  const { user } = useAuth()
+  if(!user) return <Navigate to="/login" replace/>
+  return user.role==='admin' ? <AdminDashboard/> : <EmployeeDashboard/>
 }
 
 export default function App(){
@@ -26,7 +32,7 @@ export default function App(){
         <Routes>
           <Route path="/login" element={<Login/>}/>
           <Route path="/signup" element={<Signup/>}/>
-          <Route path="/" element={<Navigate to="/employees" replace/>}/>
+          <Route path="/" element={<Protected><DashboardSwitch/></Protected>}/>
           <Route path="/employees" element={<Protected><Employees/></Protected>}/>
           <Route path="/employees/:id" element={<Protected><EmployeeProfile/></Protected>}/>
           <Route path="/profile" element={<Protected><EmployeeProfile/></Protected>}/>

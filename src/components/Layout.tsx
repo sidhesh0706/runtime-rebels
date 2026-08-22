@@ -1,14 +1,8 @@
 import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom'
-import { Users, CalendarCheck, CalendarDays, Settings, HelpCircle, LogOut, Menu, X, LogIn, LogOut as LogOutIcon, User as UserIcon, CheckCircle2, Search as SearchIcon } from 'lucide-react'
+import { Users, CalendarCheck, CalendarDays, Settings, HelpCircle, LogOut, Menu, X, LogIn, LogOut as LogOutIcon, User as UserIcon, CheckCircle2, Search as SearchIcon, LayoutDashboard } from 'lucide-react'
 import { useAuth, getMyEmployee } from '../lib/store'
 import { useState, useRef, useEffect } from 'react'
 import CommandPalette from './CommandPalette'
-
-const navItems = [
-  { to:'/employees', label:'Employees', icon: Users },
-  { to:'/attendance', label:'Attendance', icon: CalendarCheck },
-  { to:'/time-off', label:'Time Off', icon: CalendarDays },
-]
 
 export default function Layout({children}:{children:React.ReactNode}){
   const { user, logout, employees, attendance, checkIn, checkOut } = useAuth()
@@ -23,6 +17,18 @@ export default function Layout({children}:{children:React.ReactNode}){
   },[])
 
   if(!user) return <>{children}</>
+
+  const navItems = user.role === 'admin'
+    ? [
+        { to:'/employees', label:'Employees', icon: Users },
+        { to:'/attendance', label:'Attendance', icon: CalendarCheck },
+        { to:'/time-off', label:'Time Off', icon: CalendarDays },
+      ]
+    : [
+        { to:'/', label:'Dashboard', icon: LayoutDashboard },
+        { to:'/attendance', label:'Attendance', icon: CalendarCheck },
+        { to:'/time-off', label:'Time Off', icon: CalendarDays },
+      ]
 
   // find own employee record for checkin status — use helper for demo accounts
   const myEmp = getMyEmployee(user, employees)
@@ -65,7 +71,7 @@ export default function Layout({children}:{children:React.ReactNode}){
           <div className="text-[10px] tracking-[0.14em] text-white/35 font-medium uppercase px-2 mb-2">Workspace</div>
           <div className="space-y-0.5">
             {navItems.map(i=>{
-              const active = loc.pathname.startsWith(i.to) || (i.to==='/time-off' && loc.pathname.startsWith('/leave'))
+              const active = i.to === '/' ? loc.pathname === '/' : (loc.pathname.startsWith(i.to) || (i.to==='/time-off' && loc.pathname.startsWith('/leave')))
               return (
                 <NavLink key={i.to} to={i.to} className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] text-[13px] transition ${active?'bg-white/[0.08] text-white':'text-white/60 hover:text-white hover:bg-white/[0.05]'}`}>
                   <i.icon className="w-[16px] h-[16px] opacity-80"/>{i.label}
@@ -78,7 +84,6 @@ export default function Layout({children}:{children:React.ReactNode}){
             <div className="text-[10px] tracking-[0.14em] text-white/35 font-medium uppercase px-2 mb-2">Account</div>
             <div className="space-y-0.5">
               <NavLink to="/settings" className={({isActive})=>`flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] text-[13px] ${isActive?'bg-white/[0.08] text-white':'text-white/60 hover:text-white hover:bg-white/[0.05]'}`}><Settings className="w-[16px] h-[16px] opacity-80"/>Settings</NavLink>
-              <a href="#" onClick={e=>e.preventDefault()} className="flex items-center gap-2.5 px-2.5 py-[7px] rounded-[10px] text-[13px] text-white/60 hover:text-white hover:bg-white/[0.05]"><HelpCircle className="w-[16px] h-[16px] opacity-80"/>Help</a>
             </div>
           </div>
 
@@ -109,7 +114,7 @@ export default function Layout({children}:{children:React.ReactNode}){
               <div className="hidden lg:flex items-center gap-1 text-[13px]">
                 <span className="text-muted">Workspace</span>
                 <span className="text-muted-2">/</span>
-                <span className="font-medium capitalize">{loc.pathname.split('/')[1] || 'employees'}</span>
+                <span className="font-medium capitalize">{loc.pathname === '/' ? 'dashboard' : loc.pathname.split('/')[1] || 'employees'}</span>
               </div>
             </div>
 
@@ -143,9 +148,8 @@ export default function Layout({children}:{children:React.ReactNode}){
                     <div className="px-3 py-2.5 border-b border-line">
                       <div className="text-[13px] font-medium leading-none">{user.name}</div>
                       <div className="text-[11px] text-muted">{user.email}</div>
-                      <div className="text-[11px] text-muted-2 mt-1">{(user as any).loginId || 'Login ID auto-generated'}</div>
                     </div>
-                    <Link to={profileLink} onClick={()=>setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper"><UserIcon className="w-4 h-4 text-muted"/>My Profile — editable</Link>
+                    <Link to={profileLink} onClick={()=>setProfileOpen(false)} className="flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper"><UserIcon className="w-4 h-4 text-muted"/>My Profile</Link>
                     <button onClick={handleCheckIn} disabled={!!myAtt?.checkIn} className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper text-left sm:hidden disabled:opacity-50"><LogIn className="w-4 h-4 text-muted"/>{myAtt?.checkIn ? `Checked In ${myAtt.checkIn}`:'Check In'}</button>
                     <button onClick={handleCheckOut} disabled={!isCheckedIn} className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper text-left sm:hidden disabled:opacity-50"><LogOutIcon className="w-4 h-4 text-muted"/>Check Out {myAtt?.checkOut? `(${myAtt.checkOut})`:''}</button>
                     <button onClick={()=>{logout(); nav('/login')}} className="w-full flex items-center gap-2 px-3 py-2 text-[13px] hover:bg-paper text-left"><LogOut className="w-4 h-4 text-muted"/>Log Out</button>
