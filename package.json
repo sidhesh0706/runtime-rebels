@@ -4,25 +4,37 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "dev": "vinext dev --port 5173",
+    "build": "vinext build",
+    "preview": "vinext preview --port 5173",
+    "db:generate": "drizzle-kit generate"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^4.7.0",
+    "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.5.4",
     "postcss": "^8.5.26",
     "tailwindcss": "^3.4.11",
-    "typescript": "~6.0.2",
-    "vite": "^5.4.8"
+    "typescript": "^5.9.3",
+    "vite": "^8.0.13"
   },
   "dependencies": {
+    "@cloudflare/vite-plugin": "^1.37.1",
+    "@cloudflare/workers-types": "^4.20260515.1",
+    "@openai/sites-vite-plugin": "^0.2.0",
+    "@types/node": "^22.19.19",
+    "@vitejs/plugin-rsc": "^0.5.26",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.33.0",
+    "next": "^16.2.6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
-    "recharts": "^3.10.1"
+    "react-server-dom-webpack": "^19.2.6",
+    "recharts": "^3.10.1",
+    "vinext": "^1.0.0-beta.3",
+    "wrangler": "^4.92.0"
   }
 }

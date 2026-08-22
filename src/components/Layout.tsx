@@ -17,7 +17,7 @@ const insights = [
 ]
 
 export default function Layout({children}:{children:React.ReactNode}){
-  const { user, logout } = useAuth()
+  const { user, logout, syncStatus } = useAuth()
   const nav=useNavigate()
   const [open,setOpen]=useState(false)
   if(!user) return <>{children}</>
@@ -67,6 +67,10 @@ export default function Layout({children}:{children:React.ReactNode}){
         </nav>
 
         <div className="p-3 border-t border-white/[0.07]">
+          <div className="px-2 pb-2 flex items-center gap-2 text-[10px] text-white/45">
+            <span className={`w-1.5 h-1.5 rounded-full ${syncStatus==='synced'?'bg-emerald-400':syncStatus==='error'?'bg-red-400':'bg-amber-300'}`}/>
+            {syncStatus==='synced'?'Cloud workspace synced':syncStatus==='saving'?'Saving changes…':syncStatus==='loading'?'Loading workspace…':syncStatus==='error'?'Sync needs attention':'Local fallback'}
+          </div>
           <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-white/[0.04] transition">
             <img src={user.avatar} className="w-8 h-8 rounded-full object-cover"/>
             <div className="flex-1 min-w-0">

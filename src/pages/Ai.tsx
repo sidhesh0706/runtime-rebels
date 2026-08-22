@@ -61,7 +61,7 @@ export default function Ai(){
       <div>
         <div className="text-[11px] tracking-[0.12em] font-medium text-muted uppercase">Intelligence</div>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Dayflow AI</h1>
-        <p className="text-[13px] text-muted mt-1">Enterprise intelligence — grounded in your PostgreSQL data, with explanations and actions.</p>
+        <p className="text-[13px] text-muted mt-1">Enterprise intelligence — grounded in your DayFlow workspace data, with explanations and actions.</p>
       </div>
 
       <div className="grid lg:grid-cols-[1.7fr_0.9fr] gap-4">

@@ -5,7 +5,9 @@ node_modules/
 dist/
 dist-ssr/
 .next/
+.vinext/
 out/
+*.tsbuildinfo
 *.local
 
 # Environment files and secrets
@@ -36,4 +38,5 @@ Thumbs.db
 
 # Deployment and temporary files
 .vercel/
+.wrangler/
 tmp/

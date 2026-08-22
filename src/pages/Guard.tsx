@@ -68,7 +68,7 @@ export default function Guard(){
 
       <div className="bg-paper border border-line rounded-xl px-4 py-4">
         <div className="text-[12px] font-medium">How it works</div>
-        <div className="text-[11px] text-muted mt-1 leading-relaxed">Guard queries PostgreSQL for overlapping approved/pending leaves in the same department and calculates resulting availability. It never auto-approves — it supports your decision.</div>
+        <div className="text-[11px] text-muted mt-1 leading-relaxed">Guard checks durable workspace records for overlapping approved/pending leaves in the same department and calculates resulting availability. It never auto-approves — it supports your decision.</div>
       </div>
     </div>
   )

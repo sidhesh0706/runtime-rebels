@@ -11,6 +11,9 @@ export default function Leave(){
   const [end,setEnd]=useState(new Date().toISOString().slice(0,10))
   const [reason,setReason]=useState('')
   const [attachment,setAttachment]=useState('')
+  const [attachmentKey,setAttachmentKey]=useState('')
+  const [attachmentUrl,setAttachmentUrl]=useState('')
+  const [uploading,setUploading]=useState(false)
   const [error,setError]=useState('')
   const [comments,setComments]=useState<Record<string,string>>({})
   const days = Math.max(1, Math.ceil((new Date(end).getTime()-new Date(start).getTime())/86400000)+1)
@@ -25,9 +28,24 @@ export default function Leave(){
     if(type==='Sick'&&!attachment){setError('Attach a sick-leave certificate');return}
     if(myLeaves.some(l=>l.status!=='Rejected'&&!(l.endDate<start||l.startDate>end))){setError('This request overlaps an existing leave');return}
     const id='LV'+Date.now()
-    updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, attachmentName:attachment||undefined, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
+    updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, attachmentName:attachment||undefined, attachmentKey:attachmentKey||undefined, attachmentUrl:attachmentUrl||undefined, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
     setReason('')
     setAttachment('')
+    setAttachmentKey('')
+    setAttachmentUrl('')
+  }
+
+  async function uploadAttachment(file?:File){
+    if(!file)return
+    setError('');setUploading(true)
+    const form=new FormData();form.append('file',file)
+    try{
+      const response=await fetch('/api/uploads',{method:'POST',body:form})
+      const result:any=await response.json()
+      if(!response.ok)throw new Error(result.error||'Upload failed')
+      setAttachment(result.fileName);setAttachmentKey(result.key);setAttachmentUrl(result.url)
+    }catch(error){setAttachment('');setAttachmentKey('');setAttachmentUrl('');setError(error instanceof Error?error.message:'Upload failed')}
+    finally{setUploading(false)}
   }
 
   function guardFor(leaveId:string){
@@ -72,7 +90,7 @@ export default function Leave(){
               <label className="text-[11px] font-medium">Reason</label>
               <textarea value={reason} onChange={e=>setReason(e.target.value)} placeholder="Brief reason…" className="mt-1 w-full px-3 py-2 rounded-lg border border-line bg-paper text-[13px] min-h-[80px]"/>
             </div>
-            {type==='Sick'&&<label className="block rounded-lg border border-dashed border-line bg-paper px-3 py-2.5 text-[11px] text-muted cursor-pointer"><span>{attachment||'Attach sick-leave certificate'}</span><input type="file" accept="image/*,.pdf" className="hidden" onChange={e=>setAttachment(e.target.files?.[0]?.name||'')}/></label>}
+            {type==='Sick'&&<label className="block rounded-lg border border-dashed border-line bg-paper px-3 py-2.5 text-[11px] text-muted cursor-pointer"><span>{uploading?'Uploading securely…':attachment||'Attach sick-leave certificate'}</span><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" disabled={uploading} onChange={e=>uploadAttachment(e.target.files?.[0])}/></label>}
             {error&&<div className="text-[11px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{error}</div>}
             <button onClick={submit} className="w-full py-2 rounded-lg bg-accent text-white text-[13px] font-medium hover:bg-[#155a3d]">Submit request</button>
             <p className="text-[11px] text-muted text-center leading-relaxed">Reviewed by HR. Guard checks for staffing conflicts.</p>
@@ -88,7 +106,7 @@ export default function Leave(){
                   <div key={l.id} className="border border-line rounded-lg px-3 py-3 flex items-center justify-between">
                     <div>
                       <div className="text-[12px] font-medium">{l.type} • {l.days} days</div>
-                      <div className="text-[11px] text-muted">{l.startDate} → {l.endDate} • {l.reason}{l.attachmentName?` • ${l.attachmentName}`:''}</div>
+                      <div className="text-[11px] text-muted">{l.startDate} → {l.endDate} • {l.reason}{l.attachmentName?' • ':''}{l.attachmentUrl?<a href={l.attachmentUrl} target="_blank" rel="noreferrer" className="underline">{l.attachmentName}</a>:l.attachmentName}</div>
                       {l.reviewComment&&<div className="text-[11px] text-muted mt-1">HR: {l.reviewComment}</div>}
                     </div>
                     <span className={`px-2 py-1 rounded-md text-[11px] font-medium border ${l.status==='Pending'?'bg-[#fef7e7] border-[#f2e0a6] text-[#8a6d00]': l.status==='Approved'?'bg-accent-soft border-[#d6e8db] text-accent':'bg-[#fdf2f2] border-[#f0d6d6] text-[#991b1b]'}`}>{l.status}</span>

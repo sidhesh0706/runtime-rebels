@@ -49,6 +49,8 @@ export interface LeaveRequest {
   reviewedAt?: string
   reviewComment?: string
   attachmentName?: string
+  attachmentKey?: string
+  attachmentUrl?: string
 }
 
 export interface PayrollRecord {
@@ -180,15 +182,15 @@ export function generatePayroll(employees: Employee[]): PayrollRecord[] {
 // store helpers
 const KEY='dayflow_v2'
 export function loadSeed(){
-  const existing = localStorage.getItem(KEY)
+  const existing = typeof window !== 'undefined' ? localStorage.getItem(KEY) : null
   if(existing){ try{ return JSON.parse(existing)}catch{}}
   const employees=seededEmployees()
   const attendance=generateAttendance(employees)
   const leaves=generateLeaves(employees)
   const payroll=generatePayroll(employees)
   const data={ employees, attendance, leaves, payroll, version:2 }
-  localStorage.setItem(KEY, JSON.stringify(data))
+  if(typeof window !== 'undefined') localStorage.setItem(KEY, JSON.stringify(data))
   return data
 }
-export function saveData(data:any){ localStorage.setItem(KEY, JSON.stringify(data))}
+export function saveData(data:any){ if(typeof window !== 'undefined') localStorage.setItem(KEY, JSON.stringify(data))}
 export type Seed = ReturnType<typeof loadSeed>

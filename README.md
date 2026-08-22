@@ -1,38 +1,41 @@
 # Dayflow HRMS
 
-Dayflow is a focused human-resources management interface for tracking workforce activity, leave, payroll, and team health. It was built as a hackathon prototype with an operations-first dashboard and lightweight local demo data.
+DayFlow is a focused human-resources command center for tracking workforce activity, leave, payroll, and team health. It combines a polished hackathon demo with durable cloud persistence and server-side authentication.
 
 ## Features
 
-- Admin and employee authentication flows
+- Server-side admin and employee authentication with PBKDF2 password hashing and HttpOnly sessions
 - Role-based dashboard views
 - Employee directory with search, filters, and employee details
 - HR-provisioned employees with generated login IDs and temporary passwords
 - Profile tabs for resume, private information, salary, and security
 - Attendance check-in/check-out with calculated work and extra hours
-- Leave requests with overlap validation, sick-note attachments, comments, and approval synchronization
+- Leave requests with overlap validation, private R2 sick-note attachments, comments, and approval synchronization
 - Payroll summaries with board-defined salary components, PF, and professional tax
 - Workforce Pulse metrics and department availability
 - Smart Leave Guard for overlapping leave checks
 - Deterministic Dayflow AI responses for common HR questions
 - Responsive layout for desktop and mobile screens
+- Durable D1 workspace sync, audit records, and local offline fallback
 
 ## Stack
 
 - React 19 and TypeScript
-- Vite
+- Vinext on Vite 8 with the OpenAI Sites plugin
 - Tailwind CSS
 - React Router
 - Recharts and Lucide React
-- PostgreSQL schema included in `schema.sql` for the planned data model
+- Cloudflare D1 for workspace records and sessions
+- Cloudflare R2 for private document storage
+- Drizzle schema definitions for maintainable data modeling
 
-> Current prototype note: the running frontend seeds demo data and persists changes in browser `localStorage`. It does not currently connect to PostgreSQL or expose a backend API. `schema.sql` documents the intended PostgreSQL tables, views, and Smart Leave Guard query. Production authentication, email delivery, audit persistence, and binary file storage remain backend integration work.
+Browser storage is retained only as an offline cache. After sign-in, the authoritative workspace snapshot is loaded from D1 and changes are synchronized back to the server. External email delivery still requires a transactional email provider; the database already includes notification and audit tables for that integration.
 
 ## Setup
 
 Requirements:
 
-- Node.js 18 or newer
+- Node.js 22 or newer
 - npm
 
 Install dependencies:
@@ -41,22 +44,14 @@ Install dependencies:
 npm install
 ```
 
-Create local demo credentials:
+No environment variables are required locally. D1 and R2 bindings are declared in `.openai/hosting.json` and emulated by the Cloudflare Vite plugin.
 
-```bash
-Copy-Item .env.example .env
-```
+Demo accounts:
 
-Edit `.env` and replace the example values. These are browser-visible demo values, not production secrets.
-
-## Environment Variables
-
-| Variable | Purpose |
-| --- | --- |
-| `VITE_DEMO_ADMIN_PASSWORD` | Password for the seeded admin demo account |
-| `VITE_DEMO_EMPLOYEE_PASSWORD` | Password for the seeded employee demo account |
-
-The demo account emails are `admin@dayflow.co` and `isha@dayflow.co`. Existing browser data is stored under the `dayflow_users`, `dayflow_session`, and `dayflow_data` localStorage keys.
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@dayflow.co` | `Dayflow@2026` |
+| Employee | `isha@dayflow.co` | `Employee@2026` |
 
 ## Run
 
@@ -78,25 +73,27 @@ Preview the production build locally:
 npm run preview
 ```
 
-There are currently no automated test or lint scripts configured in `package.json`.
+The production build validates all client, server, RSC, and API route bundles.
 
 ## Project Structure
 
 ```text
+app/            Vinext route shell and authenticated API routes
+db/             Drizzle D1 schema
+lib/server/     Password hashing, sessions, and D1 initialization
 src/
   components/    Shared application layout
-  lib/            Seed data, localStorage store, and formatting helpers
+  lib/            Seed data, cloud-sync store, and formatting helpers
   pages/          Auth, dashboard, attendance, leave, payroll, AI, and settings views
                   plus profile and security surfaces
   App.tsx        Router and protected routes
   index.css      Global styles and Tailwind layers
-schema.sql       PostgreSQL tables, views, and Smart Leave Guard query
-public/          Static favicon and icon assets
+public/          Static favicon, icons, and social preview
 ```
 
 ## Hackathon Highlights
 
-Dayflow's main hackathon features are the workforce command center dashboard, department availability metrics, Smart Leave Guard, Workforce Pulse, simulated attendance actions, leave approval workflows, and the HR-focused Dayflow AI interface. These features are intentionally presented as a self-contained frontend demo while the PostgreSQL model remains ready for a future backend integration.
+DayFlow's main hackathon features are the workforce command center dashboard, department availability metrics, Smart Leave Guard, Workforce Pulse, real check-in/check-out actions, leave approval workflows, and the HR-focused DayFlow AI interface. D1 persistence, secure sessions, R2 uploads, and audit events make the demo resilient enough for multi-device judging.
 
 ## License
 

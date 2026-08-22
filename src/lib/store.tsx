@@ -1,21 +1,20 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { calculatePayroll, loadSeed, saveData, type Attendance, type Dept, type Employee, type LeaveRequest, type Role } from './data'
 
-type User = { id:string; name:string; email:string; loginId?:string; role:Role; avatar:string; department?:string; phone?:string; company?:string; mustChangePassword?:boolean }
-type StoredUser = User & {password:string}
+type User = { id:string; companyId?:string; name:string; email:string; loginId?:string; role:Role; avatar:string; department?:string; phone?:string; company?:string; mustChangePassword?:boolean }
 type NewEmployee = { name:string; email:string; phone:string; department:Dept; jobTitle:string; joinDate:string }
 
 type Ctx = {
   user: User | null
-  login: (identifier:string, pass:string) => boolean
-  signup: (company:string,name:string,email:string,phone:string,pass:string)=>boolean
+  login: (identifier:string, pass:string) => Promise<boolean>
+  signup: (company:string,name:string,email:string,phone:string,pass:string)=>Promise<boolean>
   logout: ()=>void
   data: ReturnType<typeof loadSeed>
   updateLeaves: (fn:(prev:LeaveRequest[])=>LeaveRequest[])=>void
   updateAttendance: (empId:string, status: Attendance['status'])=>void
   checkIn: (empId:string)=>void
   checkOut: (empId:string)=>void
-  createEmployee: (input:NewEmployee)=>{ok:boolean; loginId?:string; temporaryPassword?:string; error?:string}
+  createEmployee: (input:NewEmployee)=>Promise<{ok:boolean; loginId?:string; temporaryPassword?:string; error?:string}>
   reviewLeave: (leaveId:string,status:'Approved'|'Rejected',comment:string)=>void
   updateEmployee: (employeeId:string,patch:Partial<Employee>)=>void
   updatePayrollWage: (employeeId:string,wage:number)=>void
@@ -23,54 +22,72 @@ type Ctx = {
   attendance: Attendance[]
   leaves: LeaveRequest[]
   refreshBrief: ()=>void
+  syncStatus: 'offline'|'loading'|'synced'|'saving'|'error'
 }
 
 const AuthContext = createContext<Ctx>(null as any)
 
-const USERS_KEY='dayflow_users'
 const SESSION_KEY='dayflow_session'
-const DEMO_ADMIN_PASSWORD = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || ''
-const DEMO_EMPLOYEE_PASSWORD = import.meta.env.VITE_DEMO_EMPLOYEE_PASSWORD || ''
-
-function getUsers(): StoredUser[] {
-  const v=localStorage.getItem(USERS_KEY)
-  if(v) try{ return JSON.parse(v)}catch{}
-  const defaults=[
-    { id:'U1', name:'Aarav Sharma', email:'admin@dayflow.co', loginId:'OIARSH20200001', password:DEMO_ADMIN_PASSWORD, role:'admin' as Role, avatar:'https://i.pravatar.cc/150?img=12', company:'Dayflow' },
-    { id:'U2', name:'Isha Patel', email:'isha@dayflow.co', loginId:'OIISPA20210002', password:DEMO_EMPLOYEE_PASSWORD, role:'employee' as Role, avatar:'https://i.pravatar.cc/150?img=5' },
-  ]
-  localStorage.setItem(USERS_KEY, JSON.stringify(defaults))
-  return defaults
-}
-function saveUsers(users:StoredUser[]){ localStorage.setItem(USERS_KEY,JSON.stringify(users)) }
 function timeNow(){ return new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false}) }
 function minutes(value?:string){ if(!value) return 0; const [h,m]=value.split(':').map(Number); return h*60+m }
 
 export function AuthProvider({children}:{children:ReactNode}){
-  const [user,setUser]=useState<User|null>(()=>{ const s=localStorage.getItem(SESSION_KEY); return s? JSON.parse(s): null })
+  const [user,setUser]=useState<User|null>(()=>{ const s=typeof window!=='undefined'?localStorage.getItem(SESSION_KEY):null; return s? JSON.parse(s): null })
   const [data,setData]=useState(()=>loadSeed())
+  const [syncStatus,setSyncStatus]=useState<Ctx['syncStatus']>('offline')
+  const [remoteReady,setRemoteReady]=useState(false)
 
   useEffect(()=>{ saveData(data)},[data])
 
-  const login=(identifier:string, pass:string)=>{
-    const users=getUsers()
-    const key=identifier.trim().toLowerCase()
-    const found=users.find(u=>(u.email.toLowerCase()===key || u.loginId?.toLowerCase()===key) && u.password===pass)
-    if(!found) return false
-    const {password, ...rest}=found
-    setUser(rest as User); localStorage.setItem(SESSION_KEY, JSON.stringify(rest))
+  useEffect(()=>{
+    fetch('/api/auth').then(async response=>{
+      if(!response.ok) throw new Error('No active server session')
+      const result:any=await response.json()
+      setUser(result.user); localStorage.setItem(SESSION_KEY,JSON.stringify(result.user))
+    }).catch(()=>{ setUser(null); localStorage.removeItem(SESSION_KEY); setSyncStatus('offline') })
+  },[])
+
+  useEffect(()=>{
+    if(!user){setRemoteReady(false);setSyncStatus('offline');return}
+    let cancelled=false
+    setSyncStatus('loading')
+    fetch('/api/snapshot').then(async response=>{
+      if(!response.ok) throw new Error('Workspace sync unavailable')
+      const result:any=await response.json()
+      if(cancelled) return
+      if(result.data) setData(result.data)
+      else await fetch('/api/snapshot',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+      if(!cancelled){setRemoteReady(true);setSyncStatus('synced')}
+    }).catch(()=>{if(!cancelled)setSyncStatus('error')})
+    return ()=>{cancelled=true}
+  },[user?.id])
+
+  useEffect(()=>{
+    if(!user||!remoteReady) return
+    setSyncStatus('saving')
+    const timer=window.setTimeout(()=>{
+      fetch('/api/snapshot',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+        .then(response=>{if(!response.ok)throw new Error('Sync failed');setSyncStatus('synced')})
+        .catch(()=>setSyncStatus('error'))
+    },700)
+    return ()=>window.clearTimeout(timer)
+  },[data,user?.id,remoteReady])
+
+  const login=async(identifier:string, pass:string)=>{
+    const response=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',identifier,password:pass})})
+    if(!response.ok) return false
+    const result:any=await response.json()
+    setUser(result.user); localStorage.setItem(SESSION_KEY, JSON.stringify(result.user))
     return true
   }
-  const signup=(company:string,name:string,email:string,phone:string,pass:string)=>{
-    const users=getUsers()
-    if(users.some(u=>u.email.toLowerCase()===email.toLowerCase())) return false
-    const newUser:StoredUser={ id:'U'+Date.now(), name, email, phone, company, password:pass, role:'admin', loginId:`${company.replace(/[^A-Za-z]/g,'').slice(0,2).toUpperCase()}ADMIN${new Date().getFullYear()}0001`, avatar:`https://i.pravatar.cc/150?img=${Math.floor(Math.random()*70)+1}`}
-    users.push(newUser); saveUsers(users)
-    const {password, ...rest}=newUser
-    setUser(rest as User); localStorage.setItem(SESSION_KEY, JSON.stringify(rest))
+  const signup=async(company:string,name:string,email:string,phone:string,pass:string)=>{
+    const response=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'signup',company,name,email,phone,password:pass})})
+    if(!response.ok) return false
+    const result:any=await response.json()
+    setUser(result.user); localStorage.setItem(SESSION_KEY, JSON.stringify(result.user))
     return true
   }
-  const logout=()=>{ setUser(null); localStorage.removeItem(SESSION_KEY)}
+  const logout=()=>{ fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{}); setUser(null); localStorage.removeItem(SESSION_KEY)}
 
   const updateLeaves=(fn:(prev:LeaveRequest[])=>LeaveRequest[])=>{
     setData(d=>({...d, leaves: fn(d.leaves)}))
@@ -110,21 +127,14 @@ export function AuthProvider({children}:{children:ReactNode}){
       return {...d,attendance:next}
     })
   }
-  const createEmployee=(input:NewEmployee)=>{
+  const createEmployee=async(input:NewEmployee)=>{
     if(!user || user.role==='employee') return {ok:false,error:'Only HR/Admin can create employees'}
-    const users=getUsers()
-    if(users.some(u=>u.email.toLowerCase()===input.email.toLowerCase())) return {ok:false,error:'Email already exists'}
-    const parts=input.name.trim().split(/\s+/)
-    const initials=`${parts[0]?.slice(0,2)||'EM'}${parts[parts.length-1]?.slice(0,2)||'PL'}`.toUpperCase()
-    const year=input.joinDate.slice(0,4)
-    const serial=String(users.filter(u=>u.loginId?.includes(year)).length+1).padStart(4,'0')
-    const loginId=`OI${initials}${year}${serial}`
-    const temporaryPassword=`Df!${loginId.slice(-4)}${Math.floor(1000+Math.random()*9000)}`
-    const employee:Employee={id:loginId,name:input.name,email:input.email,phone:input.phone,department:input.department,role:input.jobTitle,avatar:`https://i.pravatar.cc/150?img=${Math.floor(Math.random()*70)+1}`,salary:50000,joinDate:input.joinDate,status:'Active',manager:user.name,location:'Bengaluru',address:'',about:'',interests:'',skills:[],certifications:[]}
-    users.push({id:'U'+Date.now(),name:input.name,email:input.email,loginId,password:temporaryPassword,role:'employee',avatar:employee.avatar,department:input.department,mustChangePassword:true})
-    saveUsers(users)
+    const response=await fetch('/api/employees',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(input)})
+    const result:any=await response.json()
+    if(!response.ok) return {ok:false,error:result.error||'Could not create employee'}
+    const employee:Employee={id:result.loginId,name:input.name,email:input.email,phone:input.phone,department:input.department,role:input.jobTitle,avatar:result.avatar,salary:50000,joinDate:input.joinDate,status:'Active',manager:user.name,location:'Bengaluru',address:'',about:'',interests:'',skills:[],certifications:[]}
     setData(d=>({...d,employees:[...d.employees,employee],payroll:[...d.payroll,calculatePayroll(employee.id,employee.salary)]}))
-    return {ok:true,loginId,temporaryPassword}
+    return {ok:true,loginId:result.loginId,temporaryPassword:result.temporaryPassword}
   }
   const reviewLeave=(leaveId:string,status:'Approved'|'Rejected',comment:string)=>{
     setData(d=>{
@@ -146,7 +156,7 @@ export function AuthProvider({children}:{children:ReactNode}){
   const updatePayrollWage=(employeeId:string,wage:number)=>setData(d=>({...d,employees:d.employees.map(e=>e.id===employeeId?{...e,salary:wage}:e),payroll:d.payroll.map(p=>p.employeeId===employeeId?calculatePayroll(employeeId,wage):p)}))
   const refreshBrief=()=>setData(d=>({...d}))
 
-  return <AuthContext.Provider value={{ user, login, signup, logout, data, updateLeaves, updateAttendance, checkIn, checkOut, createEmployee, reviewLeave, updateEmployee, updatePayrollWage, employees:data.employees, attendance:data.attendance, leaves:data.leaves, refreshBrief }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, login, signup, logout, data, updateLeaves, updateAttendance, checkIn, checkOut, createEmployee, reviewLeave, updateEmployee, updatePayrollWage, employees:data.employees, attendance:data.attendance, leaves:data.leaves, refreshBrief, syncStatus }}>{children}</AuthContext.Provider>
 }
 export const useAuth=()=>useContext(AuthContext)
 

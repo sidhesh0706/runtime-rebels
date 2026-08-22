@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../lib/store'
 import { Eye, EyeOff, Upload } from 'lucide-react'
 
-const DEMO_ADMIN_PASSWORD = import.meta.env.VITE_DEMO_ADMIN_PASSWORD || ''
-const DEMO_EMPLOYEE_PASSWORD = import.meta.env.VITE_DEMO_EMPLOYEE_PASSWORD || ''
+const DEMO_ADMIN_PASSWORD = 'Dayflow@2026'
+const DEMO_EMPLOYEE_PASSWORD = 'Employee@2026'
 
 export function Login(){
   const { login } = useAuth()
@@ -13,6 +13,7 @@ export function Login(){
   const [pass,setPass]=useState(DEMO_ADMIN_PASSWORD)
   const [showPass,setShowPass]=useState(false)
   const [err,setErr]=useState('')
+  const [submitting,setSubmitting]=useState(false)
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_0.95fr] bg-paper">
       <div className="bg-[#131517] text-white px-8 lg:px-12 py-10 flex flex-col">
@@ -46,7 +47,7 @@ export function Login(){
               <button onClick={()=>{setEmail('admin@dayflow.co'); setPass(DEMO_ADMIN_PASSWORD)}} className="text-[11px] px-2.5 py-1.5 rounded-md border border-line bg-ink text-white">Admin demo</button>
               <button onClick={()=>{setEmail('isha@dayflow.co'); setPass(DEMO_EMPLOYEE_PASSWORD)}} className="text-[11px] px-2.5 py-1.5 rounded-md border border-line bg-white">Employee demo</button>
             </div>
-            <form onSubmit={e=>{e.preventDefault(); const ok=login(email,pass); if(!ok) setErr('Invalid credentials'); else nav('/')}} className="mt-5 space-y-3">
+            <form onSubmit={async e=>{e.preventDefault();setErr('');setSubmitting(true);try{const ok=await login(email,pass);if(!ok)setErr('Invalid credentials');else nav('/')}catch{setErr('Could not reach the secure sign-in service')}finally{setSubmitting(false)}}} className="mt-5 space-y-3">
               <div>
                 <label className="text-[11px] font-medium">Login ID or work email</label>
                 <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="OIARSH20200001 or you@company.co" className="mt-1 w-full px-3 py-2.5 rounded-lg border border-line bg-paper outline-none text-[13px]" />
@@ -56,12 +57,12 @@ export function Login(){
                 <div className="relative mt-1"><input type={showPass?'text':'password'} value={pass} onChange={e=>setPass(e.target.value)} placeholder="••••••••" className="w-full px-3 py-2.5 pr-10 rounded-lg border border-line bg-paper outline-none text-[13px]" /><button type="button" onClick={()=>setShowPass(v=>!v)} aria-label={showPass?'Hide password':'Show password'} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">{showPass?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button></div>
               </div>
               {err && <div className="text-[12px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{err}</div>}
-              <button className="w-full py-2.5 rounded-lg bg-ink text-white text-[13px] font-medium hover:bg-black">Sign in</button>
+              <button disabled={submitting} className="w-full py-2.5 rounded-lg bg-ink text-white text-[13px] font-medium hover:bg-black disabled:opacity-60">{submitting?'Signing in…':'Sign in'}</button>
               <div className="text-[11px] text-center text-muted">Don&apos;t have an account? <Link to="/signup" className="text-ink font-medium underline underline-offset-4">Create workspace</Link></div>
             </form>
             <div className="mt-6 grid grid-cols-2 gap-3 text-[11px]">
-              <div className="rounded-lg bg-paper border border-line p-3"><div className="font-medium text-ink">Admin</div><div className="text-muted">admin@dayflow.co</div><div className="text-muted">Demo password from .env</div></div>
-              <div className="rounded-lg bg-paper border border-line p-3"><div className="font-medium text-ink">Employee</div><div className="text-muted">isha@dayflow.co</div><div className="text-muted">Demo password from .env</div></div>
+              <div className="rounded-lg bg-paper border border-line p-3"><div className="font-medium text-ink">Admin</div><div className="text-muted">admin@dayflow.co</div><div className="text-muted">Dayflow@2026</div></div>
+              <div className="rounded-lg bg-paper border border-line p-3"><div className="font-medium text-ink">Employee</div><div className="text-muted">isha@dayflow.co</div><div className="text-muted">Employee@2026</div></div>
             </div>
           </div>
         </div>
@@ -82,6 +83,7 @@ export function Signup(){
   const [showPass,setShowPass]=useState(false)
   const [logo,setLogo]=useState('')
   const [err,setErr]=useState('')
+  const [submitting,setSubmitting]=useState(false)
   return (
     <div className="min-h-screen grid place-items-center bg-paper p-6">
       <div className="w-full max-w-[400px] bg-white border border-line rounded-xl p-6">
@@ -91,7 +93,7 @@ export function Signup(){
         </div>
         <h2 className="text-[18px] font-semibold tracking-tight mt-5">Create your workspace</h2>
         <p className="text-[13px] text-muted">Start in minutes. No credit card required.</p>
-        <form onSubmit={e=>{e.preventDefault(); if(!company||!name||!email||!phone||!pass||!confirm){ setErr('Fill all fields'); return} if(pass.length<8){setErr('Use at least 8 characters');return} if(pass!==confirm){setErr('Passwords do not match');return} const ok=signup(company,name,email,phone,pass); if(!ok) setErr('Email already exists'); else nav('/')}} className="mt-5 space-y-3">
+        <form onSubmit={async e=>{e.preventDefault();if(!company||!name||!email||!phone||!pass||!confirm){setErr('Fill all fields');return}if(pass.length<8){setErr('Use at least 8 characters');return}if(pass!==confirm){setErr('Passwords do not match');return}setErr('');setSubmitting(true);try{const ok=await signup(company,name,email,phone,pass);if(!ok)setErr('Email already exists or the details are invalid');else nav('/')}catch{setErr('Could not create the workspace')}finally{setSubmitting(false)}}} className="mt-5 space-y-3">
           <input placeholder="Company name" value={company} onChange={e=>setCompany(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
           <input placeholder="Full name" value={name} onChange={e=>setName(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
           <input placeholder="Work email" type="email" value={email} onChange={e=>setEmail(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-line bg-paper text-[13px]" />
@@ -101,7 +103,7 @@ export function Signup(){
           <label className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-line bg-paper text-[12px] text-muted cursor-pointer"><Upload className="w-4 h-4"/><span>{logo||'Upload company logo'}</span><input type="file" accept="image/*" className="hidden" onChange={e=>setLogo(e.target.files?.[0]?.name||'')}/></label>
           <p className="text-[11px] text-muted">This creates the company administrator. Employees are provisioned by HR with generated credentials.</p>
           {err && <div className="text-[12px] text-[#991b1b] bg-[#fdf2f2] border border-[#f0d6d6] rounded-lg px-3 py-2">{err}</div>}
-          <button className="w-full py-2.5 rounded-lg bg-ink text-white text-[13px] font-medium">Create account</button>
+          <button disabled={submitting} className="w-full py-2.5 rounded-lg bg-ink text-white text-[13px] font-medium disabled:opacity-60">{submitting?'Creating workspace…':'Create account'}</button>
         </form>
         <div className="text-[11px] text-center mt-4 text-muted">Already have an account? <Link to="/login" className="text-ink font-medium underline underline-offset-4">Sign in</Link></div>
       </div>

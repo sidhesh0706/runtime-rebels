@@ -56,7 +56,7 @@ export default function Pulse(){
       <div className="bg-white border border-line rounded-xl">
         <div className="px-5 py-4 border-b border-line">
           <h3 className="text-[13px] font-semibold">Workforce heatmap</h3>
-          <p className="text-[11px] text-muted">Availability by team × last 7 days • Real data from PostgreSQL</p>
+          <p className="text-[11px] text-muted">Availability by team × last 7 days • Synced workspace data</p>
         </div>
         <div className="p-4 overflow-auto">
           <div className="min-w-[640px]">

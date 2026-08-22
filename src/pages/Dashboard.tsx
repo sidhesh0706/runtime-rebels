@@ -184,7 +184,7 @@ export function AdminDashboard() {
       <div className="bg-white border border-line rounded-xl">
         <div className="px-5 py-4 border-b border-line flex items-center justify-between">
           <h3 className="text-[13px] font-semibold">Recent activity</h3>
-          <span className="text-[11px] text-muted">Live from PostgreSQL</span>
+          <span className="text-[11px] text-muted">Live from DayFlow D1</span>
         </div>
         <div className="px-5 py-4 grid md:grid-cols-3 gap-3">
           {[
