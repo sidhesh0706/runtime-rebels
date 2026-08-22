@@ -1,74 +1,191 @@
-# DayFlow HRMS
+# DayFlow — Workforce, Aligned
 
-DayFlow is a PostgreSQL-backed workforce command center for attendance, leave, payroll, employee records, and team-health insights.
+> A self-hosted, PostgreSQL-backed HR management system built by **Runtime Rebels** for the **Odoo x NMIT Bangalore Hackathon '26 — Virtual Round**.
 
-## Features
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev/)
 
-- Demo administrator and employee login
-- Role-aware employee profiles and private information
-- Attendance check-in and check-out
-- Leave requests, approvals, and Smart Leave Guard
-- Payroll and salary component views
-- Workforce Pulse, department availability, heatmap, and Dayflow AI views
-- Responsive React interface with local persistence
+DayFlow gives HR teams one clear view of their workforce. Attendance, time off, employee records, payroll, team availability, and operational insights stay synchronized in a single application—without relying on Supabase, Firebase, or another third-party backend service.
 
-## Stack
+## Why DayFlow?
 
-- React 19, TypeScript, Vite 8, and Tailwind CSS
-- React Router, Recharts, and Lucide React
-- PostgreSQL for authentication and shared workspace persistence
-- Express API with server-side sessions and role-aware mutation checks
-- Browser cache for fast startup; PostgreSQL remains the source of truth
+HR information is often fragmented across spreadsheets, messages, and disconnected tools. That makes simple questions surprisingly difficult:
 
-## Local setup
+- Who is available today?
+- Which leave requests need attention?
+- Is one department becoming understaffed?
+- Does an employee see the same leave status as HR?
+- Can sensitive profile and payroll data be protected by role?
 
-Requirements:
+DayFlow turns those questions into live, traceable workflows backed by PostgreSQL.
+
+## Core features
+
+| Area | What DayFlow delivers |
+| --- | --- |
+| Authentication | Email or Login ID sign-in, salted password hashing, PostgreSQL sessions, and role-aware navigation |
+| HR dashboard | Live KPIs, pending approvals, recent activity, Workforce Pulse, department availability, and a workforce heatmap |
+| Employee directory | Searchable employee cards, consistent gender-aware illustrated avatars, detailed profiles, and admin employee provisioning |
+| Attendance | Employee check-in/check-out, day and week views, admin visibility, late/absent/leave states, and payable-day context |
+| Time off | Employee leave requests, allowance summaries, and admin approval/rejection with the same status visible to both roles |
+| Payroll | Salary breakdowns, deductions, net pay, employee read-only access, and admin-controlled wage updates |
+| Workforce Pulse | Data-derived attendance, leave, staffing, and department health indicators with a non-flat historical trend |
+| Dayflow AI | Deterministic workforce questions and answers computed from current employee, attendance, and leave data |
+| Security and auditability | Server-enforced mutation rules, private-field protection, salary restrictions, session expiry, and an audit log |
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[Admin or Employee] --> R[React + TypeScript client]
+    R -->|/api via Vite proxy| E[Express API]
+    E --> A[Authentication and role checks]
+    A --> P[(PostgreSQL 16)]
+    P --> S[Users and sessions]
+    P --> W[Shared workforce state]
+    P --> L[Audit log]
+    W --> E --> R
+```
+
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router, Recharts, and Lucide React
+- **Backend:** Express 5 API running on Node.js
+- **Database:** PostgreSQL 16, started locally with Docker Compose
+- **Authentication:** salted `scrypt` password hashes and opaque 12-hour sessions stored in PostgreSQL
+- **Data flow:** the browser keeps a fast local cache, while PostgreSQL remains the shared source of truth
+
+## Run locally
+
+### Prerequisites
 
 - Node.js 22.12 or newer
 - npm
-- Docker Desktop (or PostgreSQL 16 on `localhost:5432`)
+- Docker Desktop with Docker Compose, or a PostgreSQL 16 instance
 
-From the project folder:
+### Quick start
 
 ```powershell
+git clone https://github.com/sidhesh0706/runtime-rebels.git
+cd runtime-rebels
 npm install
+Copy-Item .env.example .env
 npm run db:up
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The API automatically creates its tables and seeds the two demo accounts; workspace changes persist in PostgreSQL.
+Open [http://localhost:5173](http://localhost:5173). The client runs on port `5173`, the API on port `3001`, and PostgreSQL on port `5432`.
+
+The API creates the required tables and seeds the demo workspace automatically. To confirm the backend and database connection, open [http://localhost:3001/api/health](http://localhost:3001/api/health).
 
 ### Demo accounts
 
-| Role | Login | Password |
-| --- | --- | --- |
-| Administrator | `admin@dayflow.co` | `Admin@123` |
-| Employee | `isha@dayflow.co` | `Employee@123` |
+| Role | Email | Login ID | Password |
+| --- | --- | --- | --- |
+| HR Administrator | `admin@dayflow.co` | `DFAS1001` | `Admin@123` |
+| Employee | `isha@dayflow.co` | `DFIP1002` | `Employee@123` |
 
-Use the Reset Demo action on the login screen to clear local data and regenerate the demo workspace.
+> These credentials are seed data for local judging and demonstration only. Change them before any real deployment.
 
-## Commands
+## Recommended judge walkthrough
 
-```powershell
-npm run dev       # start the local Vite server
-npm run build     # typecheck and build the production client
-npm run preview   # preview the production build
-npm run db:up     # start local PostgreSQL
-npm run db:migrate
-npm run db:seed
+The following flow demonstrates the shared database and role separation in a few minutes:
+
+1. Sign in as **Isha Patel** using the employee account.
+2. Check in from the employee dashboard and review the updated attendance state.
+3. Open **Time Off**, create a leave request, and confirm that it appears as pending.
+4. Sign out, then sign in as the **HR Administrator**.
+5. Open **Time Off** and approve or reject Isha's request—the same record is synchronized through PostgreSQL.
+6. Review **Attendance** to see employees with consistent illustrated avatars and their current status.
+7. Open the dashboard and **Workforce Pulse** to inspect availability, the heatmap, and department risk.
+8. Open **Payroll** to demonstrate salary calculations and admin-only editing.
+9. Ask **Dayflow AI** for a workforce summary or pending leave count and follow its navigation actions.
+
+## Role model
+
+| Capability | Administrator | Employee |
+| --- | :---: | :---: |
+| View the full employee directory | Yes | Limited |
+| Add employees and provision credentials | Yes | No |
+| Edit salary information | Yes | No |
+| Review leave requests | Yes | No |
+| Request personal leave | No | Yes |
+| Check personal attendance in/out | No | Yes |
+| Edit private profile information | Any employee | Own profile only |
+| View payroll | All employees | Own record only |
+
+Authorization is checked by the API before shared data is accepted; hiding a control in the interface is not treated as a security boundary.
+
+## PostgreSQL data model
+
+| Table | Purpose |
+| --- | --- |
+| `dayflow_app_users` | User identity, role, Login ID, profile metadata, and password hash |
+| `dayflow_app_sessions` | Expiring server-side login sessions |
+| `dayflow_app_workspace_state` | Versioned shared workforce data for employees, attendance, leave, and payroll |
+| `dayflow_app_audit_log` | Authentication and employee-provisioning events |
+
+The application uses parameterized SQL queries, timing-safe password verification, `HttpOnly`/`SameSite=Lax` cookies, and server-side role validation. The included environment settings are intentionally configured for local demo use.
+
+## Environment configuration
+
+Copy `.env.example` to `.env` and adjust values when needed:
+
+```env
+DATABASE_URL=postgresql://dayflow:dayflow@localhost:5432/dayflow
+API_PORT=3001
+SESSION_COOKIE_NAME=dayflow_session
+DEMO_ADMIN_PASSWORD=Admin@123
+DEMO_EMPLOYEE_PASSWORD=Employee@123
 ```
+
+`.env` is ignored by Git; only the safe example file is committed.
+
+## Useful commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Express API and Vite client together |
+| `npm run dev:client` | Start only the Vite client |
+| `npm run dev:server` | Start only the API with automatic reload |
+| `npm run build` | Type-check the client and server, then create a production client build |
+| `npm run preview` | Preview the production client build locally |
+| `npm run db:up` | Start PostgreSQL with Docker Compose |
+| `npm run db:migrate` | Create or update the PostgreSQL schema |
+| `npm run db:seed` | Seed the demo users and workforce workspace |
+| `npm run db:down` | Stop the local Docker Compose services |
 
 ## Project structure
 
 ```text
-src/
-  components/     shared application layout
-  lib/            typed seed, PostgreSQL synchronization, and metrics
-  pages/          authentication and HR workflow screens
-public/assets/    local visual assets
-server/           Express API, sessions, schema, and database seed
+runtime-rebels/
+├── server/                 # Express API, auth, migrations, and seed logic
+│   ├── auth.ts
+│   ├── db.ts
+│   ├── index.ts
+│   ├── migrate.ts
+│   └── seed.ts
+├── src/
+│   ├── components/         # Shared layout, command palette, and avatars
+│   ├── lib/                # Typed data, state synchronization, and metrics
+│   ├── pages/              # HR and employee workflow screens
+│   ├── App.tsx             # Protected routes and role-aware dashboard
+│   └── main.tsx
+├── docker-compose.yml      # Local PostgreSQL 16 service
+├── .env.example            # Safe local configuration template
+├── package.json
+└── vite.config.ts          # Vite setup and local API proxy
 ```
 
-## License
+## Verification before submission
 
-No license has been selected for this prototype yet.
+```powershell
+npm run build
+docker compose ps
+```
+
+Then verify both demo accounts, employee-to-admin leave synchronization, check-in/check-out, consistent avatars, Workforce Pulse, the heatmap, payroll permissions, and a page refresh to confirm database persistence.
+
+---
+
+Built with care by **Runtime Rebels** for the Odoo x NMIT Bangalore Hackathon '26.
