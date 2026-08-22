@@ -9,7 +9,7 @@ type Ctx = {
   signup: (name:string,email:string,pass:string,role:Role, extra?:{companyName?:string; phone?:string})=>Promise<boolean>
   logout: ()=>void
   data: ReturnType<typeof loadSeed>
-  updateLeaves: (fn:(prev:LeaveRequest[])=>LeaveRequest[])=>void
+  updateLeaves: (fn:(prev:LeaveRequest[])=>LeaveRequest[])=>Promise<boolean>
   updateAttendance: (empId:string, status: Attendance['status'])=>void
   checkIn: (empId:string)=>void
   checkOut: (empId:string)=>void
@@ -120,8 +120,11 @@ export function AuthProvider({children}:{children:ReactNode}){
   }
   const logout=()=>{requestJson('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'logout'})}).catch(()=>{});setUser(null);hydrated.current=false;localStorage.removeItem(SESSION_KEY)}
 
-  const updateLeaves=(fn:(prev:LeaveRequest[])=>LeaveRequest[])=>{
-    setData(d=>({...d, leaves: fn(d.leaves)}))
+  const updateLeaves=async(fn:(prev:LeaveRequest[])=>LeaveRequest[])=>{
+    const next={...data,leaves:fn(data.leaves)}
+    setData(next)
+    try{await requestJson('/api/workspace',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:next})});return true}
+    catch(error){console.error('[Leave sync]',error);setData(data);return false}
   }
   function nowHM(){ const n=new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}` }
   const updateAttendance=(empId:string, status: Attendance['status'])=>{

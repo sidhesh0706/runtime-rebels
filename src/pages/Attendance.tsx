@@ -1,6 +1,7 @@
 import { useAuth, getMyEmployee } from '../lib/store'
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { EmployeeAvatar } from '../components/EmployeeAvatar'
 
 function toMins(t?:string){ if(!t) return null; const [h,m]=t.split(':').map(Number); return h*60+m }
 function formatHM(mins:number){ const h=Math.floor(mins/60), m=mins%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` }
@@ -143,7 +144,7 @@ export default function Attendance(){
                     const dayName = new Date(a?.date || date).toLocaleDateString('en-US',{weekday:'short'})
                     return (
                       <tr key={emp.id} className="hover:bg-paper/40">
-                        <td className="px-4 py-3 text-[11px] text-muted-2">[Employee] <span className="text-ink font-medium ml-1">{emp.name.split(' ')[0]}</span></td>
+                        <td className="px-4 py-3"><div className="flex items-center gap-2.5"><EmployeeAvatar employee={emp} className="w-8 h-8"/><div><div className="text-[12px] text-ink font-medium">{emp.name}</div><div className="text-[10px] text-muted">{emp.department}</div></div></div></td>
                         {view==='Day' && <td className="px-4 py-3 tabular-nums text-muted">{dayName}</td>}
                         <td className="px-4 py-3 tabular-nums">{ci}</td>
                         <td className="px-4 py-3 tabular-nums">{co}</td>

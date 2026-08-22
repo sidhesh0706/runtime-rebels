@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useAuth } from '../lib/store'
+import { getMyEmployee, useAuth } from '../lib/store'
 import { Search, Plus, X, Calendar as CalIcon, Paperclip } from 'lucide-react'
 
 function CalendarGrid({ leavesForMonth, month, year }:{ leavesForMonth: string[], month:number, year:number }){
@@ -23,7 +23,7 @@ function CalendarGrid({ leavesForMonth, month, year }:{ leavesForMonth: string[]
 export default function Leave(){
   const { employees, leaves, updateLeaves, user } = useAuth()
   const isAdmin=user?.role==='admin'
-  const me = employees.find(e=>e.email===user?.email) || employees[0]
+  const me = getMyEmployee(user,employees) || employees[0]
   const [activeTab,setActiveTab]=useState<'timeoff'|'allocation'>(isAdmin? 'timeoff':'timeoff')
   const [subTab,setSubTab]=useState<'paid'|'sick'>('paid')
   const [search,setSearch]=useState('')
@@ -50,10 +50,10 @@ export default function Leave(){
     })
   },[leaves,search,activeTab,isAdmin,employees])
 
-  function submit(){
+  async function submit(){
     const id='LV'+Date.now()
-    updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
-    setReason(''); setShowReq(false)
+    const saved=await updateLeaves(prev=>[...prev, { id, employeeId: me.id, type: type as any, startDate:start, endDate:end, days, reason, status:'Pending', createdAt: new Date().toISOString().slice(0,10)}])
+    if(saved){setReason('');setShowReq(false)}
   }
 
   function guardFor(leaveId:string){
