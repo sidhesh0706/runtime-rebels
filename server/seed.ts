@@ -36,6 +36,22 @@ function dateOffset(offset: number) {
   return date.toISOString().slice(0, 10)
 }
 
+const aboutTemplates=[
+  'I turn complex work into clear, dependable outcomes and enjoy helping teammates grow along the way.',
+  'Curious by nature, I like listening closely, testing ideas quickly, and shipping work that genuinely helps people.',
+  'I care about thoughtful execution, honest collaboration, and leaving every system a little better than I found it.',
+  'My best days combine focused problem-solving, kind teamwork, and a measurable improvement for our customers.',
+  'I bring structure to ambiguity and enjoy connecting the small details to the wider business goal.',
+  'I am happiest when learning something new, sharing it with the team, and turning it into a practical result.',
+  'I value calm communication, strong craft, and simple solutions that hold up under real-world pressure.',
+  'I enjoy finding the human story behind the data and using it to make smarter, more inclusive decisions.',
+  'I am a hands-on teammate who believes consistent small improvements create exceptional products and workplaces.',
+  'I like challenging assumptions respectfully, building with care, and celebrating the people behind every win.',
+  'I combine analytical thinking with empathy to make work clearer, faster, and more useful for everyone involved.',
+  'I thrive in collaborative teams where ownership is shared, feedback is direct, and good ideas can come from anyone.',
+]
+const loveTemplates=['Solving hard problems with people who care about the outcome.','Turning feedback into visible improvements.','Helping teammates do their strongest work.','Seeing a careful idea become a useful everyday tool.','Learning from customers and improving how we work.','Building clarity and momentum across the team.']
+
 export async function seed() {
   const existing = await pool.query("SELECT 1 FROM companies WHERE id = 'COMP-DEMO'")
   if (existing.rowCount) return
@@ -64,9 +80,9 @@ export async function seed() {
       await client.query(`INSERT INTO employees (id, company_id, user_id, name, email, phone, department, job_title, avatar, join_date, manager, location, address, about, job_love, interests, skills, certifications)
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18::jsonb)`, [
         id, 'COMP-DEMO', userId, name, email, `+91 ${9000000000 + index}`, department, jobTitle,
-        `/api/avatars-v2/${name.replaceAll(' ','-')}`, joinDate, index < 8 ? 'Vikram Rao' : 'Aarav Sharma', index % 3 === 0 ? 'Bengaluru' : 'Hybrid',
-        'Bengaluru, Karnataka', 'Focused on building thoughtful systems and helping the team do its best work.', 'Building reliable systems with a people-first team.',
-        'Learning, team culture, and solving meaningful problems.', JSON.stringify(index % 2 ? ['Collaboration', 'Planning'] : ['Leadership', 'Problem solving']), JSON.stringify(index % 3 === 0 ? ['Workplace Essentials'] : []),
+        `/api/employee-photo/${index}`, joinDate, index < 8 ? 'Vikram Rao' : 'Aarav Sharma', index % 3 === 0 ? 'Bengaluru' : 'Hybrid',
+        'Bengaluru, Karnataka', `I’m ${name}. ${aboutTemplates[index%aboutTemplates.length]}`, loveTemplates[index%loveTemplates.length],
+        `${['Mentoring','Design systems','Automation','Customer research','Data storytelling','Team culture'][index%6]}, ${['hiking','reading','music','photography','badminton','cooking'][index%6]}.`, JSON.stringify(index % 2 ? ['Collaboration', 'Planning'] : ['Leadership', 'Problem solving']), JSON.stringify(index % 3 === 0 ? ['Workplace Essentials'] : []),
       ])
       await client.query('INSERT INTO employee_private_info (employee_id, nationality, personal_email, residential_address) VALUES ($1,$2,$3,$4)', [id, 'Indian', email, 'Bengaluru, Karnataka'])
       await client.query('INSERT INTO bank_details (employee_id, bank_name, ifsc_code, employee_code) VALUES ($1,$2,$3,$4)', [id, 'Demo Bank', 'DEMO0001234', id])

@@ -1,4 +1,5 @@
 import { useAuth, useMetrics, departmentStats } from '../lib/store'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 export default function Pulse(){
   const { employees, attendance, leaves } = useAuth()
@@ -6,6 +7,8 @@ export default function Pulse(){
   const depts=departmentStats(employees, attendance, leaves)
   const engineering=depts.find(d=>d.dept==='Engineering')
   const days = Array.from({length:7},(_,i)=>{ const d=new Date(); d.setDate(d.getDate()-6+i); return d.toISOString().slice(0,10)})
+  const trend=days.map(day=>{const rows=attendance.filter(row=>row.date===day);const present=rows.filter(row=>['Present','Late','Half-day'].includes(row.status)).length;return {day:new Date(`${day}T00:00:00`).toLocaleDateString('en-US',{weekday:'short'}),date:day,availability:employees.length?Math.round(present/employees.length*100):0}})
+  const trendFloor=Math.max(0,Math.min(...trend.map(point=>point.availability))-8)
   const deptList=['Engineering','Design','Marketing','Sales','Human Resources','Finance'] as const
   return (
     <div className="space-y-5">
@@ -14,6 +17,8 @@ export default function Pulse(){
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight">Workforce Pulse</h1>
         <p className="text-[13px] text-muted mt-1">The health of your workforce today — and why.</p>
       </div>
+
+      <div className="bg-white border border-line rounded-xl p-5"><div className="flex items-start justify-between"><div><h3 className="text-[13px] font-semibold">Seven-day pulse trend</h3><p className="text-[11px] text-muted">Actual attendance movement from PostgreSQL — hover for daily values.</p></div><div className="text-[11px] text-muted">{trend[0]?.availability}% → <span className="font-semibold text-ink">{trend.at(-1)?.availability}%</span></div></div><div className="mt-4 h-[220px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend}><defs><linearGradient id="pulseFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#1a6b4a" stopOpacity={0.28}/><stop offset="100%" stopColor="#1a6b4a" stopOpacity={0.03}/></linearGradient></defs><CartesianGrid stroke="#f0ece6" vertical={false}/><XAxis dataKey="day" tick={{fontSize:11,fill:'#858b91'}} axisLine={false} tickLine={false}/><YAxis domain={[trendFloor,100]} tick={{fontSize:11,fill:'#858b91'}} axisLine={false} tickLine={false} width={34} unit="%"/><Tooltip formatter={(value)=>[`${value}%`,'Availability']} labelFormatter={(_,payload)=>payload?.[0]?.payload?.date||''} contentStyle={{borderRadius:10,border:'1px solid #e8e3dd',fontSize:12}}/><Area type="monotone" dataKey="availability" stroke="#1a6b4a" strokeWidth={2.5} fill="url(#pulseFill)" dot={{r:4,fill:'#fff',stroke:'#1a6b4a',strokeWidth:2}} activeDot={{r:6}}/></AreaChart></ResponsiveContainer></div></div>
 
       <div className="grid lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white border border-line rounded-xl">

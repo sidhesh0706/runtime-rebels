@@ -39,7 +39,11 @@ async function main() {
   expect(adminWorkspace.body.attendance.some((row:any)=>row.date===today),'Current attendance dates are not serialized as YYYY-MM-DD')
   expect(adminWorkspace.body.attendance.every((row:any)=>/^\d{4}-\d{2}-\d{2}$/.test(row.date)),'An attendance date has the wrong API format')
   expect(adminWorkspace.body.leaves.every((row:any)=>/^\d{4}-\d{2}-\d{2}$/.test(row.startDate)&&/^\d{4}-\d{2}-\d{2}$/.test(row.endDate)),'A leave date has the wrong API format')
-  expect(adminWorkspace.body.employees.every((row:any)=>String(row.avatar).startsWith('/api/avatars-v2/')), 'An employee avatar still depends on an external service')
+  expect(adminWorkspace.body.employees.every((row:any)=>/^\/api\/(avatars-v2|employee-photo)\//.test(String(row.avatar))), 'An employee avatar still depends on an external service')
+  expect(new Set(adminWorkspace.body.employees.map((row:any)=>row.avatar)).size===adminWorkspace.body.employees.length,'Demo employees do not have distinct portraits')
+  expect(new Set(adminWorkspace.body.employees.map((row:any)=>row.about)).size===adminWorkspace.body.employees.length,'Demo employee biographies are not unique')
+  const trend=Array.from({length:7},(_,index)=>{const date=new Date();date.setDate(date.getDate()-6+index);const key=date.toISOString().slice(0,10);return adminWorkspace.body.attendance.filter((row:any)=>row.date===key&&['Present','Late','Half-day'].includes(row.status)).length})
+  expect(new Set(trend).size>=3,'Workforce pulse history does not contain meaningful variation')
   const avatar=await fetch(`${baseUrl}${adminWorkspace.body.employees[0].avatar}`)
   expect(avatar.status===200&&avatar.headers.get('content-type')?.includes('image/svg+xml'),'Local avatar generation failed')
 

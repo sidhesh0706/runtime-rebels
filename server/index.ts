@@ -46,6 +46,12 @@ const upload = multer({
   fileFilter: (_request, file, callback) => allowedContentTypes.has(file.mimetype) ? callback(null, true) : callback(new Error('Upload a PDF, JPG, PNG, or WebP file')),
 })
 
+app.get('/api/employee-photo/:index', (request,response)=>{
+  const index=Math.max(0,Math.min(47,Number.parseInt(String(request.params.index),10)||0))
+  const column=index%6;const row=Math.floor(index/6)
+  response.setHeader('Cache-Control','public, max-age=86400').type('image/svg+xml').send(`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180"><image href="/assets/employee-portraits-v1.png" x="${-column*180}" y="${-row*180}" width="1080" height="1440" preserveAspectRatio="none"/></svg>`)
+})
+
 app.get('/api/avatars-v2/:seed', (request, response) => {
   const seed=String(request.params.seed).replace(/[^A-Za-z0-9-]/g,'').slice(0,60)||'DayFlow'
   const hash=Array.from(seed).reduce((sum,char,index)=>sum+char.charCodeAt(0)*(index+3),0)

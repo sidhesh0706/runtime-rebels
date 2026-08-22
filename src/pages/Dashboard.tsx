@@ -84,7 +84,7 @@ export function AdminDashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9aa0a8' }} axisLine={false} tickLine={false} />
                   <YAxis domain={[60, 100]} tick={{ fontSize: 11, fill: '#9aa0a8' }} axisLine={false} tickLine={false} width={30} />
                   <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #ede9e3', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', fontSize: 12 }} />
-                  <Area type="monotone" dataKey="value" stroke="#1a6b4a" strokeWidth={1.5} fill="#edf4ef" fillOpacity={1} dot={false} />
+                  <Area type="monotone" dataKey="value" stroke="#1a6b4a" strokeWidth={2.25} fill="#edf4ef" fillOpacity={1} dot={{r:3,fill:'#fff',stroke:'#1a6b4a',strokeWidth:2}} activeDot={{r:5}} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
