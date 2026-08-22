@@ -73,11 +73,6 @@ Copy-Item .env.example .env
 npm run db:up
 npm run dev
 ```
-
-Open [http://localhost:5173](http://localhost:5173). The client runs on port `5173`, the API on port `3001`, and PostgreSQL on port `5432`.
-
-The API creates the required tables and seeds the demo workspace automatically. To confirm the backend and database connection, open [http://localhost:3001/api/health](http://localhost:3001/api/health).
-
 ### Demo accounts
 
 | Role | Email | Login ID | Password |
@@ -87,19 +82,6 @@ The API creates the required tables and seeds the demo workspace automatically. 
 
 > These credentials are seed data for the local demo environment only. Change them before any real deployment.
 
-## End-to-end workflow
-
-DayFlow connects employee actions and HR operations through one shared workflow:
-
-1. Sign in as **Isha Patel** using the employee account.
-2. Check in from the employee dashboard and review the updated attendance state.
-3. Open **Time Off**, create a leave request, and confirm that it appears as pending.
-4. Sign out, then sign in as the **HR Administrator**.
-5. Open **Time Off** and approve or reject Isha's request—the same record is synchronized through PostgreSQL.
-6. Review **Attendance** to see employees with consistent illustrated avatars and their current status.
-7. Open the dashboard and **Workforce Pulse** to inspect availability, the heatmap, and department risk.
-8. Open **Payroll** to demonstrate salary calculations and admin-only editing.
-9. Ask **Dayflow AI** for a workforce summary or pending leave count and follow its navigation actions.
 
 ## Role model
 
